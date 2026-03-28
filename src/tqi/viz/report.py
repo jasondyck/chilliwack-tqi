@@ -89,46 +89,41 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
           });
         }
 
-        // Score breakdown — use adaptive scale since Chilliwack scores are very low
+        // Score breakdown — vertical bars with adaptive scale
         if (CHART_DATA.scores) {
-          const maxScore = Math.max(CHART_DATA.scores.coverage, CHART_DATA.scores.speed, CHART_DATA.scores.tqi);
-          const scaleMax = Math.min(100, Math.max(10, Math.ceil(maxScore * 1.5 / 5) * 5));
+          const vals = [CHART_DATA.scores.coverage, CHART_DATA.scores.speed, CHART_DATA.scores.tqi];
+          const scaleMax = Math.min(100, Math.max(10, Math.ceil(Math.max(...vals) * 1.5)));
           new Chart(document.getElementById('chart-scores'), {
             type: 'bar',
             data: {
               labels: ['Coverage', 'Speed', 'Overall TQI'],
               datasets: [{
-                data: [CHART_DATA.scores.coverage, CHART_DATA.scores.speed, CHART_DATA.scores.tqi],
-                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
-                borderRadius: 6,
-                barPercentage: 0.6,
+                data: vals,
+                backgroundColor: ['rgba(59,130,246,0.8)', 'rgba(16,185,129,0.8)', 'rgba(245,158,11,0.8)'],
+                borderColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                borderWidth: 2,
+                borderRadius: 8,
+                barPercentage: 0.5,
               }]
             },
             options: {
-              indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+              responsive: true, maintainAspectRatio: false,
               scales: {
-                x: {
-                  max: scaleMax,
-                  title: { display: true, text: `Score (0–100, showing 0–${scaleMax})` },
-                  ticks: { callback: v => v.toFixed(0) }
-                }
+                y: { beginAtZero: true, max: scaleMax, title: { display: true, text: 'Score (out of 100)' }},
+                x: { grid: { display: false } }
               },
-              plugins: {
-                tooltip: { callbacks: { label: ctx => ctx.parsed.x.toFixed(1) + ' / 100' }},
-                // Show value labels on bars
-                datalabels: false
-              }
+              plugins: { tooltip: { callbacks: { label: ctx => ctx.parsed.y.toFixed(1) + ' / 100' }}}
             },
             plugins: [{
               afterDatasetsDraw(chart) {
-                const ctx = chart.ctx;
+                const ctx2 = chart.ctx;
                 chart.data.datasets[0].data.forEach((val, i) => {
                   const meta = chart.getDatasetMeta(0).data[i];
-                  ctx.fillStyle = '#1e293b';
-                  ctx.font = 'bold 13px Inter, sans-serif';
-                  ctx.textAlign = 'left';
-                  ctx.textBaseline = 'middle';
-                  ctx.fillText(val.toFixed(1), meta.x + 6, meta.y);
+                  ctx2.fillStyle = '#1e293b';
+                  ctx2.font = 'bold 14px Inter, sans-serif';
+                  ctx2.textAlign = 'center';
+                  ctx2.textBaseline = 'bottom';
+                  ctx2.fillText(val.toFixed(1), meta.x, meta.y - 6);
                 });
               }
             }]
