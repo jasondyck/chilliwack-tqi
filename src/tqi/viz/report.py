@@ -467,8 +467,8 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
                 <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
                     <p class="font-label text-[10px] uppercase tracking-widest text-slate-500 mb-1">Overall System LOS</p>
                     <div class="flex items-baseline gap-2">
-                        <span class="text-3xl sm:text-4xl font-extrabold text-slate-900 font-headline">{{ da.system_los_summary.system_los_grade }}</span>
-                        <span class="text-sm font-medium text-orange-500">{{ da.system_los_summary.system_los_description }}</span>
+                        <span class="text-3xl sm:text-4xl font-extrabold text-slate-900 font-headline">{{ da.system_los_summary.best_grade }}</span>
+                        <span class="text-sm font-medium text-orange-500">Best route grade ({{ da.system_los_summary.worst_grade }} worst)</span>
                     </div>
                     <div class="mt-4 pt-4 border-t border-slate-100">
                         <div class="flex justify-between text-xs mb-1">
@@ -530,7 +530,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
     <!-- ============================================================ -->
     <!-- PTAL                                                          -->
     <!-- ============================================================ -->
-    {% if ptal_chart %}
+    {% if da and da.ptal_distribution %}
     <section>
         <div class="flex items-center gap-4 mb-6">
             <h2 class="font-headline font-bold text-xl text-slate-900">Public Transport Accessibility Level (PTAL)</h2>
