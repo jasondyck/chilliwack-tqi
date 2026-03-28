@@ -51,14 +51,37 @@ def compute_route_los(feed: GTFSFeed) -> list[RouteLOS]:
     results = []
 
     for (route_id, route_name), group in st.groupby(["route_id", "route_short_name"]):
-        # Get first-stop departure per trip (proxy for trip start time)
-        trip_starts = (
-            group.sort_values("stop_sequence")
-            .groupby("trip_id")["departure_min"]
-            .first()
-            .sort_values()
-        )
-        n_trips = len(trip_starts)
+        # Compute headway per direction separately, then take the better one.
+        # Mixing directions inflates frequency (two 30-min routes interleave to look like 15-min).
+        n_trips = group["trip_id"].nunique()
+        dir_headways = []
+        for d_id, d_group in group.groupby("direction_id"):
+            d_starts = (
+                d_group.sort_values("stop_sequence")
+                .groupby("trip_id")["departure_min"]
+                .first()
+                .sort_values()
+            )
+            if len(d_starts) >= 2:
+                hws = np.diff(d_starts.values.astype(float))
+                hws = hws[hws > 0]
+                if len(hws) > 0:
+                    dir_headways.append(float(np.median(hws)))
+        # If we have per-direction data, use the best (lowest) direction headway.
+        # If only one direction exists, use that.
+        if dir_headways:
+            trip_starts_median = min(dir_headways)
+        else:
+            # Fallback: all trips combined
+            all_starts = (
+                group.sort_values("stop_sequence")
+                .groupby("trip_id")["departure_min"]
+                .first()
+                .sort_values()
+            )
+            hws = np.diff(all_starts.values.astype(float))
+            hws = hws[hws > 0]
+            trip_starts_median = float(np.median(hws)) if len(hws) > 0 else 999.0
 
         if n_trips < 2:
             results.append(RouteLOS(
@@ -73,24 +96,25 @@ def compute_route_los(feed: GTFSFeed) -> list[RouteLOS]:
             ))
             continue
 
-        # Compute headways between consecutive trips
-        starts = trip_starts.values.astype(float)
-        headways = np.diff(starts)
-        headways = headways[headways > 0]  # filter duplicates
+        median_hw = trip_starts_median
 
-        if len(headways) == 0:
-            median_hw = 999.0
-        else:
-            median_hw = float(np.median(headways))
-
-        # AM peak headway (trips starting 7:00-9:00 = 420-540 min)
-        peak_starts = starts[(starts >= 420) & (starts <= 540)]
-        if len(peak_starts) >= 2:
-            peak_headways = np.diff(peak_starts)
-            peak_headways = peak_headways[peak_headways > 0]
-            peak_hw = float(np.median(peak_headways)) if len(peak_headways) > 0 else None
-        else:
-            peak_hw = None
+        # AM peak headway per direction (7:00-9:00 = 420-540 min)
+        peak_hw = None
+        for d_id, d_group in group.groupby("direction_id"):
+            d_starts = (
+                d_group.sort_values("stop_sequence")
+                .groupby("trip_id")["departure_min"]
+                .first()
+                .sort_values()
+            ).values.astype(float)
+            peak_s = d_starts[(d_starts >= 420) & (d_starts <= 540)]
+            if len(peak_s) >= 2:
+                phw = np.diff(peak_s)
+                phw = phw[phw > 0]
+                if len(phw) > 0:
+                    candidate = float(np.median(phw))
+                    if peak_hw is None or candidate < peak_hw:
+                        peak_hw = candidate
 
         grade, desc = _headway_to_los(median_hw)
 
