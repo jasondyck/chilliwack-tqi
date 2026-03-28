@@ -89,8 +89,10 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
           });
         }
 
-        // Score breakdown
+        // Score breakdown — use adaptive scale since Chilliwack scores are very low
         if (CHART_DATA.scores) {
+          const maxScore = Math.max(CHART_DATA.scores.coverage, CHART_DATA.scores.speed, CHART_DATA.scores.tqi);
+          const scaleMax = Math.min(100, Math.max(10, Math.ceil(maxScore * 1.5 / 5) * 5));
           new Chart(document.getElementById('chart-scores'), {
             type: 'bar',
             data: {
@@ -104,21 +106,49 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
             },
             options: {
               indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-              scales: { x: { max: 100, title: { display: true, text: 'Score (0-100)' }}},
-              plugins: { tooltip: { callbacks: { label: ctx => ctx.parsed.x.toFixed(1) + ' / 100' }}}
-            }
+              scales: {
+                x: {
+                  max: scaleMax,
+                  title: { display: true, text: `Score (0–100, showing 0–${scaleMax})` },
+                  ticks: { callback: v => v.toFixed(0) }
+                }
+              },
+              plugins: {
+                tooltip: { callbacks: { label: ctx => ctx.parsed.x.toFixed(1) + ' / 100' }},
+                // Show value labels on bars
+                datalabels: false
+              }
+            },
+            plugins: [{
+              afterDatasetsDraw(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets[0].data.forEach((val, i) => {
+                  const meta = chart.getDatasetMeta(0).data[i];
+                  ctx.fillStyle = '#1e293b';
+                  ctx.font = 'bold 13px Inter, sans-serif';
+                  ctx.textAlign = 'left';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(val.toFixed(1), meta.x + 6, meta.y);
+                });
+              }
+            }]
           });
         }
 
-        // TSR distribution (doughnut)
+        // TSR distribution (doughnut) — filter out zero segments
         if (CHART_DATA.tsr) {
+          const tsrLabels = ['Slower than walking (<5 km/h)', 'Marginal (5–10 km/h)', 'Useful (10–20 km/h)', 'Competitive (20+ km/h)'];
+          const tsrValues = [CHART_DATA.tsr.slower, CHART_DATA.tsr.band_5_10, CHART_DATA.tsr.band_10_20, CHART_DATA.tsr.band_20_plus];
+          const tsrColors = ['#ef4444', '#f59e0b', '#10b981', '#059669'];
+          // Filter out zero segments
+          const filtered = tsrLabels.map((l, i) => ({label: l, value: tsrValues[i], color: tsrColors[i]})).filter(d => d.value > 0);
           new Chart(document.getElementById('chart-tsr'), {
             type: 'doughnut',
             data: {
-              labels: ['Slower than walking (<5 km/h)', 'Marginal (5-10 km/h)', 'Useful (10-20 km/h)', 'Competitive (20+ km/h)'],
+              labels: filtered.map(d => d.label),
               datasets: [{
-                data: [CHART_DATA.tsr.slower, CHART_DATA.tsr.band_5_10, CHART_DATA.tsr.band_10_20, CHART_DATA.tsr.band_20_plus],
-                backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#059669'],
+                data: filtered.map(d => d.value),
+                backgroundColor: filtered.map(d => d.color),
                 borderWidth: 2, borderColor: '#ffffff',
               }]
             },
@@ -126,14 +156,32 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
               responsive: true, maintainAspectRatio: false,
               cutout: '55%',
               plugins: {
-                legend: { display: true, position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' }},
+                legend: { display: true, position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } }},
                 tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed.toFixed(1)}%` }}
               }
-            }
+            },
+            plugins: [{
+              afterDraw(chart) {
+                // Center text showing mean TSR
+                const {ctx, width, height} = chart;
+                ctx.save();
+                ctx.font = 'bold 22px Inter, sans-serif';
+                ctx.fillStyle = '#1e293b';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+                const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+                ctx.fillText(`${(CHART_DATA.tsr.band_5_10 + CHART_DATA.tsr.band_10_20 + CHART_DATA.tsr.band_20_plus).toFixed(0)}%`, centerX, centerY - 8);
+                ctx.font = '500 11px Inter, sans-serif';
+                ctx.fillStyle = '#64748b';
+                ctx.fillText('faster than walking', centerX, centerY + 12);
+                ctx.restore();
+              }
+            }]
           });
         }
 
-        // Travel time percentiles
+        // Travel time percentiles — with value labels
         if (CHART_DATA.travel_time) {
           new Chart(document.getElementById('chart-travel-time'), {
             type: 'bar',
@@ -152,7 +200,20 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
               responsive: true, maintainAspectRatio: false,
               scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes' }}},
               plugins: { tooltip: { callbacks: { label: ctx => ctx.parsed.y.toFixed(0) + ' min' }}}
-            }
+            },
+            plugins: [{
+              afterDatasetsDraw(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets[0].data.forEach((val, i) => {
+                  const meta = chart.getDatasetMeta(0).data[i];
+                  ctx.fillStyle = '#1e293b';
+                  ctx.font = 'bold 12px Inter, sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'bottom';
+                  ctx.fillText(val.toFixed(0) + 'm', meta.x, meta.y - 4);
+                });
+              }
+            }]
           });
         }
 
@@ -181,12 +242,13 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
           });
         }
 
-        // PTAL distribution
+        // PTAL distribution — with value labels on bars
         if (CHART_DATA.ptal) {
+          const ptalDesc = ['Extremely Poor', 'Very Poor', 'Poor', 'Moderate', 'Good', 'Very Good', 'Excellent', 'Excellent+'];
           new Chart(document.getElementById('chart-ptal'), {
             type: 'bar',
             data: {
-              labels: CHART_DATA.ptal.labels,
+              labels: CHART_DATA.ptal.labels.map((g, i) => `${g}\n${ptalDesc[i]}`),
               datasets: [{
                 data: CHART_DATA.ptal.counts,
                 backgroundColor: ['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#10b981','#059669','#047857'],
@@ -195,12 +257,30 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
             },
             options: {
               responsive: true, maintainAspectRatio: false,
-              scales: { y: { title: { display: true, text: 'Grid Points' }}},
+              scales: {
+                y: { title: { display: true, text: 'Grid Points' }},
+                x: { ticks: { font: { size: 10 } } }
+              },
               plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toLocaleString()} points` }}
+                tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toLocaleString()} grid points (${(ctx.parsed.y / CHART_DATA.ptal.counts.reduce((a,b) => a+b, 0) * 100).toFixed(1)}%)` }}
               }
-            }
+            },
+            plugins: [{
+              afterDatasetsDraw(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets[0].data.forEach((val, i) => {
+                  if (val > 0) {
+                    const meta = chart.getDatasetMeta(0).data[i];
+                    ctx.fillStyle = '#1e293b';
+                    ctx.font = 'bold 11px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(val.toLocaleString(), meta.x, meta.y - 4);
+                  }
+                });
+              }
+            }]
           });
         }
       });
