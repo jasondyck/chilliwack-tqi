@@ -92,18 +92,17 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
         // Score breakdown — vertical bars with adaptive scale
         if (CHART_DATA.scores) {
           const vals = [CHART_DATA.scores.coverage, CHART_DATA.scores.speed, CHART_DATA.scores.tqi];
-          const scaleMax = Math.min(100, Math.max(10, Math.ceil(Math.max(...vals) * 1.5)));
+          const scaleMax = Math.min(100, Math.max(10, Math.ceil(Math.max(...vals) * 1.8)));
           new Chart(document.getElementById('chart-scores'), {
             type: 'bar',
             data: {
               labels: ['Coverage', 'Speed', 'Overall TQI'],
               datasets: [{
                 data: vals,
-                backgroundColor: ['rgba(59,130,246,0.8)', 'rgba(16,185,129,0.8)', 'rgba(245,158,11,0.8)'],
-                borderColor: ['#3b82f6', '#10b981', '#f59e0b'],
-                borderWidth: 2,
-                borderRadius: 8,
-                barPercentage: 0.5,
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                borderRadius: 6,
+                barPercentage: 0.55,
+                minBarLength: 8,
               }]
             },
             options: {
@@ -112,18 +111,18 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
                 y: { beginAtZero: true, max: scaleMax, title: { display: true, text: 'Score (out of 100)' }},
                 x: { grid: { display: false } }
               },
-              plugins: { tooltip: { callbacks: { label: ctx => ctx.parsed.y.toFixed(1) + ' / 100' }}}
+              plugins: { tooltip: { callbacks: { label: function(ctx) { return ctx.parsed.y.toFixed(1) + ' / 100'; } }}}
             },
             plugins: [{
-              afterDatasetsDraw(chart) {
-                const ctx2 = chart.ctx;
-                chart.data.datasets[0].data.forEach((val, i) => {
-                  const meta = chart.getDatasetMeta(0).data[i];
-                  ctx2.fillStyle = '#1e293b';
-                  ctx2.font = 'bold 14px Inter, sans-serif';
-                  ctx2.textAlign = 'center';
-                  ctx2.textBaseline = 'bottom';
-                  ctx2.fillText(val.toFixed(1), meta.x, meta.y - 6);
+              afterDatasetsDraw: function(chart) {
+                var c = chart.ctx;
+                chart.data.datasets[0].data.forEach(function(val, i) {
+                  var meta = chart.getDatasetMeta(0).data[i];
+                  c.fillStyle = '#1e293b';
+                  c.font = 'bold 14px Inter, sans-serif';
+                  c.textAlign = 'center';
+                  c.textBaseline = 'bottom';
+                  c.fillText(val.toFixed(1), meta.x, meta.y - 6);
                 });
               }
             }]
@@ -178,34 +177,34 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
 
         // Travel time percentiles — with value labels
         if (CHART_DATA.travel_time) {
+          var ttColors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
           new Chart(document.getElementById('chart-travel-time'), {
             type: 'bar',
             data: {
               labels: CHART_DATA.travel_time.labels,
               datasets: [{
                 data: CHART_DATA.travel_time.values,
-                backgroundColor: CHART_DATA.travel_time.values.map((v, i, a) => {
-                  const t = i / (a.length - 1);
-                  return `rgba(${Math.round(16 + 223*t)}, ${Math.round(185 - 120*t)}, ${Math.round(129 - 60*t)}, 0.85)`;
-                }),
-                borderRadius: 6, barPercentage: 0.65,
+                backgroundColor: ttColors.slice(0, CHART_DATA.travel_time.values.length),
+                borderRadius: 6,
+                barPercentage: 0.6,
+                minBarLength: 4,
               }]
             },
             options: {
               responsive: true, maintainAspectRatio: false,
-              scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes' }}},
-              plugins: { tooltip: { callbacks: { label: ctx => ctx.parsed.y.toFixed(0) + ' min' }}}
+              scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes' }}, x: { grid: { display: false } } },
+              plugins: { tooltip: { callbacks: { label: function(ctx) { return ctx.parsed.y.toFixed(0) + ' min'; } }}}
             },
             plugins: [{
-              afterDatasetsDraw(chart) {
-                const ctx = chart.ctx;
-                chart.data.datasets[0].data.forEach((val, i) => {
-                  const meta = chart.getDatasetMeta(0).data[i];
-                  ctx.fillStyle = '#1e293b';
-                  ctx.font = 'bold 12px Inter, sans-serif';
-                  ctx.textAlign = 'center';
-                  ctx.textBaseline = 'bottom';
-                  ctx.fillText(val.toFixed(0) + 'm', meta.x, meta.y - 4);
+              afterDatasetsDraw: function(chart) {
+                var c = chart.ctx;
+                chart.data.datasets[0].data.forEach(function(val, i) {
+                  var meta = chart.getDatasetMeta(0).data[i];
+                  c.fillStyle = '#1e293b';
+                  c.font = 'bold 12px Inter, sans-serif';
+                  c.textAlign = 'center';
+                  c.textBaseline = 'bottom';
+                  c.fillText(val.toFixed(0) + 'm', meta.x, meta.y - 4);
                 });
               }
             }]
@@ -220,18 +219,17 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
               labels: CHART_DATA.reliability.labels,
               datasets: [{
                 data: CHART_DATA.reliability.counts,
-                backgroundColor: CHART_DATA.reliability.counts.map((_, i, a) => {
-                  const t = i / a.length;
-                  return `rgba(${Math.round(99 + 40*t)}, ${Math.round(102 - 40*t)}, ${Math.round(241 - 50*t)}, 0.75)`;
-                }),
-                borderRadius: 2, barPercentage: 1.0, categoryPercentage: 0.95,
+                backgroundColor: '#8b5cf6',
+                borderRadius: 2,
+                barPercentage: 1.0,
+                categoryPercentage: 0.95,
               }]
             },
             options: {
               responsive: true, maintainAspectRatio: false,
               scales: {
                 y: { title: { display: true, text: 'Grid Points' }},
-                x: { title: { display: true, text: 'Coefficient of Variation' }, ticks: { maxTicksLimit: 10 }}
+                x: { title: { display: true, text: 'Coefficient of Variation' }, ticks: { maxTicksLimit: 10 }, grid: { display: false } }
               }
             }
           });
@@ -239,39 +237,43 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
 
         // PTAL distribution — with value labels on bars
         if (CHART_DATA.ptal) {
-          const ptalDesc = ['Extremely Poor', 'Very Poor', 'Poor', 'Moderate', 'Good', 'Very Good', 'Excellent', 'Excellent+'];
+          var ptalDesc = ['Extremely Poor', 'Very Poor', 'Poor', 'Moderate', 'Good', 'Very Good', 'Excellent', 'Excellent+'];
+          var ptalColors = ['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#10b981','#059669','#047857'];
+          var total = CHART_DATA.ptal.counts.reduce(function(a,b){return a+b;}, 0);
           new Chart(document.getElementById('chart-ptal'), {
             type: 'bar',
             data: {
-              labels: CHART_DATA.ptal.labels.map((g, i) => `${g}\n${ptalDesc[i]}`),
+              labels: CHART_DATA.ptal.labels.map(function(g, i) { return g + '\n' + ptalDesc[i]; }),
               datasets: [{
                 data: CHART_DATA.ptal.counts,
-                backgroundColor: ['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#10b981','#059669','#047857'],
-                borderRadius: 6, barPercentage: 0.7,
+                backgroundColor: ptalColors,
+                borderRadius: 6,
+                barPercentage: 0.7,
+                minBarLength: 4,
               }]
             },
             options: {
               responsive: true, maintainAspectRatio: false,
               scales: {
-                y: { title: { display: true, text: 'Grid Points' }},
-                x: { ticks: { font: { size: 10 } } }
+                y: { title: { display: true, text: 'Grid Points' } },
+                x: { ticks: { font: { size: 9 } }, grid: { display: false } }
               },
               plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toLocaleString()} grid points (${(ctx.parsed.y / CHART_DATA.ptal.counts.reduce((a,b) => a+b, 0) * 100).toFixed(1)}%)` }}
+                tooltip: { callbacks: { label: function(ctx) { return ctx.parsed.y.toLocaleString() + ' points (' + (ctx.parsed.y / total * 100).toFixed(1) + '%)'; } }}
               }
             },
             plugins: [{
-              afterDatasetsDraw(chart) {
-                const ctx = chart.ctx;
-                chart.data.datasets[0].data.forEach((val, i) => {
+              afterDatasetsDraw: function(chart) {
+                var c = chart.ctx;
+                chart.data.datasets[0].data.forEach(function(val, i) {
                   if (val > 0) {
-                    const meta = chart.getDatasetMeta(0).data[i];
-                    ctx.fillStyle = '#1e293b';
-                    ctx.font = 'bold 11px Inter, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
-                    ctx.fillText(val.toLocaleString(), meta.x, meta.y - 4);
+                    var meta = chart.getDatasetMeta(0).data[i];
+                    c.fillStyle = '#1e293b';
+                    c.font = 'bold 11px Inter, sans-serif';
+                    c.textAlign = 'center';
+                    c.textBaseline = 'bottom';
+                    c.fillText(val.toLocaleString(), meta.x, meta.y - 4);
                   }
                 });
               }
