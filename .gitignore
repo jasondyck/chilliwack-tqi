@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Runtime data (downloaded GTFS, census, cached matrices)
+data/gtfs/
+data/census/
+data/cache/
+data/gtfs_*/
+output/
+
+# Keep curated data files
+!data/chilliwack_boundary.geojson
+!data/amenities.json
+
+# Secrets
+.env
+
+# Claude Code local config
+.claude/
+
+# Stitch exports
+stitch_export/
+stitch_*.zip
+*.zip:Zone.Identifier
+.serena/
+
+# OS
+.DS_Store

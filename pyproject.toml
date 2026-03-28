@@ -1,0 +1,46 @@
+[project]
+name = "chilliwack-tqi"
+version = "0.1.0"
+description = "Transit Quality Index for Chilliwack, BC"
+readme = "README.md"
+authors = [
+    { name = "Jason", email = "jason.m.dyck@hotmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "haversine>=2.8",
+    "folium>=0.16",
+    "matplotlib>=3.8",
+    "requests>=2.31",
+    "click>=8.1",
+    "jinja2>=3.1",
+    "geopandas>=0.14",
+    "shapely>=2.0",
+    "numba>=0.64.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "ruff>=0.3",
+]
+
+[project.scripts]
+tqi = "tqi.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tqi"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
