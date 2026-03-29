@@ -5,14 +5,28 @@ interface Props {
   systemLos: SystemLOS | null
 }
 
-const gradeColors: Record<string, string> = {
+const barColors: Record<string, string> = {
+  A: '#059669', B: '#22c55e', C: '#84cc16',
+  D: '#f59e0b', E: '#f97316', F: '#e11d48',
+}
+
+const badgeBg: Record<string, string> = {
   A: 'bg-emerald-100 text-emerald-800',
   B: 'bg-green-100 text-green-700',
-  C: 'bg-yellow-100 text-yellow-800',
-  D: 'bg-orange-100 text-orange-800',
-  E: 'bg-red-100 text-red-800',
-  F: 'bg-red-200 text-red-900',
+  C: 'bg-lime-100 text-lime-700',
+  D: 'bg-amber-100 text-amber-800',
+  E: 'bg-orange-100 text-orange-800',
+  F: 'bg-red-100 text-red-800',
 }
+
+const gradeRef = [
+  { grade: 'A', range: '≤ 10 min', desc: "Passengers don't need schedule", color: 'text-emerald-400' },
+  { grade: 'B', range: '≤ 14 min', desc: 'Frequent service', color: 'text-green-400' },
+  { grade: 'C', range: '≤ 20 min', desc: 'Maximum desirable wait', color: 'text-lime-400' },
+  { grade: 'D', range: '≤ 30 min', desc: 'Unattractive to choice riders', color: 'text-amber-400' },
+  { grade: 'E', range: '≤ 60 min', desc: 'Minimal service', color: 'text-orange-400' },
+  { grade: 'F', range: '> 60 min', desc: 'Unattractive to all', color: 'text-rose-400' },
+]
 
 export default function RouteTable({ routes, systemLos }: Props) {
   return (
@@ -22,52 +36,74 @@ export default function RouteTable({ routes, systemLos }: Props) {
         <div className="flex-1 border-t border-slate-200" />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Route</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600">Trips</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600">Median Headway</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600">AM Peak</th>
-                <th className="text-center px-4 py-3 font-semibold text-slate-600">LOS Grade</th>
-              </tr>
-            </thead>
-            <tbody>
-              {routes.map((r) => (
-                <tr key={r.route_id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{r.route_name}</td>
-                  <td className="px-4 py-3 text-slate-700">{r.route_long_name}</td>
-                  <td className="px-4 py-3 text-right text-slate-700">{r.trip_count}</td>
-                  <td className="px-4 py-3 text-right text-slate-700">
-                    {isFinite(r.median_headway) ? `${r.median_headway.toFixed(0)} min` : '--'}
-                  </td>
-                  <td className="px-4 py-3 text-right text-slate-700">
-                    {r.peak_headway != null ? `${r.peak_headway.toFixed(0)} min` : '--'}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span
-                      className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${gradeColors[r.los_grade] ?? 'bg-slate-100 text-slate-600'}`}
-                    >
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px]">
+          {/* Headway bars */}
+          <div className="p-4 overflow-x-auto">
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">Headway by Route</h3>
+            <div className="min-w-[360px] space-y-2">
+              {routes.map((r) => {
+                const hw = r.median_headway ?? 0
+                const pct = Math.min(hw, 80) / 80 * 100
+                const color = barColors[r.los_grade] ?? '#94a3b8'
+                return (
+                  <div key={r.route_id} className="flex items-center gap-2">
+                    <div className="w-9 text-right font-semibold text-sm text-slate-700 shrink-0">{r.route_name}</div>
+                    <div className="w-[140px] text-xs text-slate-500 truncate shrink-0 hidden sm:block">{r.route_long_name}</div>
+                    <div className="flex-1 h-6 bg-slate-100 rounded relative min-w-[100px]">
+                      <div
+                        className="absolute left-0 top-0 h-full rounded flex items-center justify-end pr-1.5"
+                        style={{ width: `${pct}%`, background: color }}
+                      >
+                        {pct > 20 && (
+                          <span className="text-[11px] font-bold text-white">{hw.toFixed(0)} min</span>
+                        )}
+                      </div>
+                      {pct <= 20 && (
+                        <span className="absolute top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-600" style={{ left: `calc(${pct}% + 4px)` }}>
+                          {hw.toFixed(0)} min
+                        </span>
+                      )}
+                    </div>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${badgeBg[r.los_grade] ?? 'bg-slate-100 text-slate-600'}`}>
                       {r.los_grade}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {systemLos && (
-          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500">
-            System summary: {systemLos.n_routes} routes, median headway {systemLos.median_headway.toFixed(0)} min,{' '}
-            {systemLos.pct_los_d_or_worse.toFixed(0)}% LOS D or worse
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        )}
+
+          {/* Dark sidebar */}
+          <div className="bg-slate-900 text-slate-200 p-4 lg:rounded-r-xl">
+            {systemLos && (
+              <>
+                <h3 className="text-sm font-bold text-white mb-2">System Summary</h3>
+                <div className="text-xs text-slate-400 space-y-1 mb-4">
+                  <div>{systemLos.n_routes} routes</div>
+                  <div>Median headway: <span className="text-white font-semibold">{systemLos.median_system_headway.toFixed(0)} min</span></div>
+                  <div>Best grade: <span className={gradeRef.find((g) => g.grade === systemLos.best_grade)?.color ?? ''}>{systemLos.best_grade}</span></div>
+                  <div>Worst grade: <span className={gradeRef.find((g) => g.grade === systemLos.worst_grade)?.color ?? ''}>{systemLos.worst_grade}</span></div>
+                  <div>{systemLos.pct_los_d_or_worse.toFixed(0)}% LOS D or worse</div>
+                </div>
+              </>
+            )}
+            <h4 className="text-xs font-semibold text-slate-400 mb-2">TCQSM Reference</h4>
+            <table className="w-full text-[11px]">
+              <tbody>
+                {gradeRef.map((g) => (
+                  <tr key={g.grade} className="border-b border-slate-800 hover:bg-slate-800/50">
+                    <td className={`py-1 font-bold ${g.color}`}>{g.grade}</td>
+                    <td className="py-1 text-slate-400">{g.range}</td>
+                    <td className="py-1 text-slate-500">{g.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
       <p className="text-xs text-slate-400 mt-2">
         Grading follows the Transit Capacity and Quality of Service Manual (TCQSM, TCRP Report 165, 3rd Edition).
-        Grades A-F are assigned based on median headway: A &le; 10 min, B &le; 14 min, C &le; 20 min, D &le; 30 min, E &le; 60 min, F &gt; 60 min.
       </p>
     </section>
   )
