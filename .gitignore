@@ -32,5 +32,10 @@ stitch_*.zip
 *.zip:Zone.Identifier
 .serena/
 
+# Node / Playwright
+node_modules/
+playwright-report/
+test-results/
+
 # OS
 .DS_Store
