@@ -46,13 +46,45 @@ func newServeCmd() *cobra.Command {
 		Short: "Start the TQI API server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			port, _ := cmd.Flags().GetInt("port")
-			fmt.Printf("Starting TQI API server on http://localhost:%d\n", port)
+			noDownload, _ := cmd.Flags().GetBool("no-download")
+			noCache, _ := cmd.Flags().GetBool("no-cache")
+			workers, _ := cmd.Flags().GetInt("workers")
+			skipRun, _ := cmd.Flags().GetBool("skip-run")
+
 			srv := api.NewServer(port)
 			srv.WebFS = web.DistFS()
+
+			if !skipRun {
+				fmt.Println("Running analysis pipeline before starting server...")
+				results, err := runPipeline(pipelineOpts{
+					gtfsURL:      config.GTFSURL,
+					dataDir:      "data",
+					bboxSW:       config.BBoxSW,
+					bboxNE:       config.BBoxNE,
+					routes:       config.ChilliwackRoutes,
+					boundaryPath: config.BoundaryGeoJSON,
+					noDownload:   noDownload,
+					noCache:      noCache,
+					workers:      workers,
+					outputDir:    "output",
+					cityName:     "chilliwack",
+				})
+				if err != nil {
+					return fmt.Errorf("pipeline failed: %w", err)
+				}
+				srv.SetResults(results)
+				fmt.Printf("\nAnalysis complete — TQI: %.1f / 100\n\n", results.TQI.TQI)
+			}
+
+			fmt.Printf("Starting TQI server on http://localhost:%d\n", port)
 			return srv.Start()
 		},
 	}
 	cmd.Flags().Int("port", 8080, "Port to listen on")
+	cmd.Flags().Bool("no-download", false, "Skip GTFS download")
+	cmd.Flags().Bool("no-cache", false, "Ignore cached matrix")
+	cmd.Flags().Int("workers", 0, "Number of parallel workers (0 = auto)")
+	cmd.Flags().Bool("skip-run", false, "Start server without running pipeline (no results until POST /api/run)")
 	return cmd
 }
 
@@ -68,7 +100,7 @@ func newRunCmd() *cobra.Command {
 			workers, _ := cmd.Flags().GetInt("workers")
 			outputDir, _ := cmd.Flags().GetString("output-dir")
 
-			return runPipeline(pipelineOpts{
+			_, err := runPipeline(pipelineOpts{
 				gtfsURL:      config.GTFSURL,
 				dataDir:      "data",
 				bboxSW:       config.BBoxSW,
@@ -81,6 +113,7 @@ func newRunCmd() *cobra.Command {
 				outputDir:    outputDir,
 				cityName:     "chilliwack",
 			})
+			return err
 		},
 	}
 	cmd.Flags().Bool("no-download", false, "Skip GTFS download")
@@ -135,7 +168,7 @@ func newCompareCmd() *cobra.Command {
 				}
 
 				fmt.Printf("\n══════ %s ══════\n", strings.ToUpper(name))
-				err := runPipeline(pipelineOpts{
+				_, err := runPipeline(pipelineOpts{
 					gtfsURL:      cc.URL,
 					dataDir:      filepath.Join("data", name),
 					bboxSW:       cc.BBoxSW,
@@ -177,7 +210,7 @@ type pipelineOpts struct {
 	cityName     string
 }
 
-func runPipeline(opts pipelineOpts) error {
+func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 	gtfsDir := filepath.Join(opts.dataDir, "gtfs")
 
 	// 1. Optionally download GTFS.
@@ -185,7 +218,7 @@ func runPipeline(opts pipelineOpts) error {
 		fmt.Println("Downloading GTFS data...")
 		hash, err := gtfs.DownloadGTFS(opts.gtfsURL, gtfsDir)
 		if err != nil {
-			return fmt.Errorf("download GTFS: %w", err)
+			return nil, fmt.Errorf("download GTFS: %w", err)
 		}
 		fmt.Printf("Feed hash: %s\n", hash)
 	}
@@ -200,7 +233,7 @@ func runPipeline(opts pipelineOpts) error {
 	fmt.Println("Parsing GTFS feed...")
 	feed, err := gtfs.LoadGTFS(gtfsDir)
 	if err != nil {
-		return fmt.Errorf("parse GTFS: %w", err)
+		return nil, fmt.Errorf("parse GTFS: %w", err)
 	}
 	fmt.Printf("Loaded %d stops, %d trips, %d routes\n", len(feed.Stops), len(feed.Trips), len(feed.Routes))
 
@@ -208,7 +241,7 @@ func runPipeline(opts pipelineOpts) error {
 	fmt.Println("Filtering feed...")
 	filtered, err := gtfs.FilterFeed(feed, opts.routes, "")
 	if err != nil {
-		return fmt.Errorf("filter feed: %w", err)
+		return nil, fmt.Errorf("filter feed: %w", err)
 	}
 	fmt.Printf("After filtering: %d stops, %d trips\n", len(filtered.Stops), len(filtered.Trips))
 
@@ -311,7 +344,7 @@ func runPipeline(opts pipelineOpts) error {
 
 	// 13. Write JSON results to output-dir/tqi_results.json.
 	if err := os.MkdirAll(opts.outputDir, 0755); err != nil {
-		return fmt.Errorf("create output dir: %w", err)
+		return nil, fmt.Errorf("create output dir: %w", err)
 	}
 
 	results := api.PipelineResults{
@@ -327,16 +360,16 @@ func runPipeline(opts pipelineOpts) error {
 	outPath := filepath.Join(opts.outputDir, "tqi_results.json")
 	f, err := os.Create(outPath)
 	if err != nil {
-		return fmt.Errorf("create results file: %w", err)
+		return nil, fmt.Errorf("create results file: %w", err)
 	}
 	defer f.Close()
 
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(results); err != nil {
-		return fmt.Errorf("write results JSON: %w", err)
+		return nil, fmt.Errorf("write results JSON: %w", err)
 	}
 	fmt.Printf("Results written to %s\n", outPath)
 
-	return nil
+	return &results, nil
 }
