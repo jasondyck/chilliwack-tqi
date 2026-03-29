@@ -2,10 +2,20 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/jasondyck/chwk-tqi/internal/api"
+	"github.com/jasondyck/chwk-tqi/internal/config"
+	"github.com/jasondyck/chwk-tqi/internal/grid"
+	"github.com/jasondyck/chwk-tqi/internal/gtfs"
+	"github.com/jasondyck/chwk-tqi/internal/raptor"
+	"github.com/jasondyck/chwk-tqi/internal/scoring"
 )
 
 func main() {
@@ -35,8 +45,8 @@ func newServeCmd() *cobra.Command {
 		Short: "Start the TQI API server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			port, _ := cmd.Flags().GetInt("port")
-			fmt.Printf("Starting TQI API server on port %d (not yet implemented)\n", port)
-			return nil
+			fmt.Printf("Starting TQI API server on port %d\n", port)
+			return api.NewServer(port).Start()
 		},
 	}
 	cmd.Flags().Int("port", 8080, "Port to listen on")
@@ -50,8 +60,24 @@ func newRunCmd() *cobra.Command {
 		Use:   "run",
 		Short: "Run the full TQI analysis pipeline",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("Running TQI analysis pipeline (not yet implemented)")
-			return nil
+			noDownload, _ := cmd.Flags().GetBool("no-download")
+			noCache, _ := cmd.Flags().GetBool("no-cache")
+			workers, _ := cmd.Flags().GetInt("workers")
+			outputDir, _ := cmd.Flags().GetString("output-dir")
+
+			return runPipeline(pipelineOpts{
+				gtfsURL:      config.GTFSURL,
+				dataDir:      "data",
+				bboxSW:       config.BBoxSW,
+				bboxNE:       config.BBoxNE,
+				routes:       config.ChilliwackRoutes,
+				boundaryPath: config.BoundaryGeoJSON,
+				noDownload:   noDownload,
+				noCache:      noCache,
+				workers:      workers,
+				outputDir:    outputDir,
+				cityName:     "chilliwack",
+			})
 		},
 	}
 	cmd.Flags().Bool("no-download", false, "Skip GTFS download")
@@ -69,7 +95,13 @@ func newDownloadCmd() *cobra.Command {
 		Use:   "download",
 		Short: "Download GTFS data from BC Transit",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("Downloading GTFS data (not yet implemented)")
+			destDir := filepath.Join("data", "gtfs")
+			fmt.Printf("Downloading GTFS from %s to %s\n", config.GTFSURL, destDir)
+			hash, err := gtfs.DownloadGTFS(config.GTFSURL, destDir)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Download complete. Feed hash: %s\n", hash)
 			return nil
 		},
 	}
@@ -83,12 +115,225 @@ func newCompareCmd() *cobra.Command {
 		Use:   "compare",
 		Short: "Compare TQI across multiple BC Transit cities",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cities, _ := cmd.Flags().GetString("cities")
-			fmt.Printf("Comparing cities: %s (not yet implemented)\n", cities)
+			citiesStr, _ := cmd.Flags().GetString("cities")
+			workers, _ := cmd.Flags().GetInt("workers")
+			outputDir, _ := cmd.Flags().GetString("output-dir")
+
+			cityNames := strings.Split(citiesStr, ",")
+			for i := range cityNames {
+				cityNames[i] = strings.TrimSpace(cityNames[i])
+			}
+
+			for _, name := range cityNames {
+				cc, ok := config.CityConfigs[name]
+				if !ok {
+					fmt.Fprintf(os.Stderr, "Warning: unknown city %q, skipping\n", name)
+					continue
+				}
+
+				fmt.Printf("\n══════ %s ══════\n", strings.ToUpper(name))
+				err := runPipeline(pipelineOpts{
+					gtfsURL:      cc.URL,
+					dataDir:      filepath.Join("data", name),
+					bboxSW:       cc.BBoxSW,
+					bboxNE:       cc.BBoxNE,
+					routes:       cc.Routes,
+					boundaryPath: "", // no boundary filter for non-Chilliwack cities
+					noDownload:   false,
+					noCache:      false,
+					workers:      workers,
+					outputDir:    filepath.Join(outputDir, name),
+					cityName:     name,
+				})
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error running pipeline for %s: %v\n", name, err)
+				}
+			}
 			return nil
 		},
 	}
 	cmd.Flags().String("cities", "chilliwack,victoria,kelowna", "Comma-separated list of cities to compare")
 	cmd.Flags().Int("workers", 0, "Number of parallel workers (0 = auto)")
+	cmd.Flags().String("output-dir", "output", "Output directory")
 	return cmd
+}
+
+// ── pipeline ──
+
+type pipelineOpts struct {
+	gtfsURL      string
+	dataDir      string
+	bboxSW       [2]float64
+	bboxNE       [2]float64
+	routes       []string
+	boundaryPath string
+	noDownload   bool
+	noCache      bool
+	workers      int
+	outputDir    string
+	cityName     string
+}
+
+func runPipeline(opts pipelineOpts) error {
+	gtfsDir := filepath.Join(opts.dataDir, "gtfs")
+
+	// 1. Optionally download GTFS.
+	if !opts.noDownload {
+		fmt.Println("Downloading GTFS data...")
+		hash, err := gtfs.DownloadGTFS(opts.gtfsURL, gtfsDir)
+		if err != nil {
+			return fmt.Errorf("download GTFS: %w", err)
+		}
+		fmt.Printf("Feed hash: %s\n", hash)
+	}
+
+	// 2. Get feed hash.
+	feedHash := gtfs.GetFeedHash(gtfsDir)
+	if feedHash == "" {
+		fmt.Println("Warning: no feed hash found; caching will be disabled")
+	}
+
+	// 3. Parse GTFS.
+	fmt.Println("Parsing GTFS feed...")
+	feed, err := gtfs.LoadGTFS(gtfsDir)
+	if err != nil {
+		return fmt.Errorf("parse GTFS: %w", err)
+	}
+	fmt.Printf("Loaded %d stops, %d trips, %d routes\n", len(feed.Stops), len(feed.Trips), len(feed.Routes))
+
+	// 4. Filter feed.
+	fmt.Println("Filtering feed...")
+	filtered, err := gtfs.FilterFeed(feed, opts.routes, "")
+	if err != nil {
+		return fmt.Errorf("filter feed: %w", err)
+	}
+	fmt.Printf("After filtering: %d stops, %d trips\n", len(filtered.Stops), len(filtered.Trips))
+
+	// 5. Build timetable.
+	fmt.Println("Building RAPTOR timetable...")
+	tt := raptor.BuildTimetable(filtered)
+	fmt.Printf("Timetable: %d stops, %d patterns\n", tt.NStops, tt.NPatterns)
+
+	// 6. Generate grid.
+	fmt.Println("Generating grid points...")
+	points := grid.Generate(opts.bboxSW, opts.bboxNE, config.GridSpacingM, opts.boundaryPath)
+	fmt.Printf("Grid: %d points\n", len(points))
+
+	// 7. Extract stop coordinates from feed using timetable.StopIDs.
+	stopLats := make([]float64, tt.NStops)
+	stopLons := make([]float64, tt.NStops)
+	stopMap := make(map[string]*gtfs.Stop, len(filtered.Stops))
+	for i := range filtered.Stops {
+		stopMap[filtered.Stops[i].StopID] = &filtered.Stops[i]
+	}
+	for i, sid := range tt.StopIDs {
+		if s, ok := stopMap[sid]; ok {
+			stopLats[i] = s.StopLat
+			stopLons[i] = s.StopLon
+		}
+	}
+
+	// 8. Compute OD matrix (check cache first).
+	var metrics *scoring.ODMetrics
+	cacheDir := opts.outputDir
+
+	if !opts.noCache && feedHash != "" {
+		fmt.Println("Checking matrix cache...")
+		cached, err := raptor.LoadCache(cacheDir, feedHash, len(points))
+		if err == nil && cached != nil {
+			fmt.Println("Using cached OD metrics.")
+			metrics = cached
+		}
+	}
+
+	if metrics == nil {
+		fmt.Println("Computing OD matrix...")
+		progressFn := func(completed, total int) {
+			if total > 0 {
+				pct := float64(completed) / float64(total) * 100
+				fmt.Printf("\r  Progress: %d/%d (%.1f%%)", completed, total, pct)
+			}
+		}
+		metrics = raptor.ComputeMatrix(tt, points, stopLats, stopLons, config.DepartureTimes(), opts.workers, progressFn)
+		fmt.Println() // newline after progress
+
+		// Save to cache.
+		if feedHash != "" {
+			if err := os.MkdirAll(cacheDir, 0755); err == nil {
+				if err := raptor.SaveCache(cacheDir, feedHash, len(points), metrics); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: could not save cache: %v\n", err)
+				} else {
+					fmt.Println("Matrix cached.")
+				}
+			}
+		}
+	}
+
+	// 9. Compute route LOS.
+	fmt.Println("Computing route LOS (TCQSM)...")
+	routeLOS := scoring.ComputeRouteLOS(filtered)
+	systemLOS := scoring.ComputeSystemLOSSummary(routeLOS)
+	fmt.Printf("System LOS: %d routes, median headway %.1f min, best grade %s\n",
+		systemLOS.NRoutes, systemLOS.MedianSystemHeadway, systemLOS.BestGrade)
+
+	// 10. Compute PTAL.
+	fmt.Println("Computing PTAL...")
+	ptal := scoring.ComputePTAL(points, filtered)
+	if len(ptal.Grades) > 0 {
+		fmt.Printf("PTAL grades range: %s to %s\n", ptal.Grades[0], ptal.Grades[len(ptal.Grades)-1])
+	}
+
+	// 11. Compute TQI.
+	fmt.Println("Computing TQI...")
+	tqi := scoring.ComputeTQI(metrics)
+
+	// 12. Print results to stdout.
+	fmt.Println()
+	fmt.Println("════════════════════════════════════")
+	fmt.Printf("  City:            %s\n", opts.cityName)
+	fmt.Printf("  TQI Score:       %.2f / 100\n", tqi.TQI)
+	fmt.Printf("  Coverage Score:  %.2f\n", tqi.CoverageScore)
+	fmt.Printf("  Speed Score:     %.2f\n", tqi.SpeedScore)
+	fmt.Printf("  Reliability CV:  %.4f\n", tqi.ReliabilityCV)
+	fmt.Printf("  Category:        %s\n", config.WalkScoreCategory(tqi.TQI))
+	fmt.Printf("  Grid Points:     %d\n", len(points))
+	fmt.Printf("  Stops:           %d\n", tt.NStops)
+	fmt.Println("════════════════════════════════════")
+	fmt.Println()
+
+	for _, r := range routeLOS {
+		fmt.Printf("  Route %-6s  LOS %s  (median headway %.0f min)\n",
+			r.RouteName, r.LOSGrade, r.MedianHeadway)
+	}
+
+	// 13. Write JSON results to output-dir/tqi_results.json.
+	if err := os.MkdirAll(opts.outputDir, 0755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+
+	results := api.PipelineResults{
+		TQI:        tqi,
+		Metrics:    metrics,
+		RouteLOS:   routeLOS,
+		SystemLOS:  systemLOS,
+		PTAL:       ptal,
+		GridPoints: len(points),
+		NStops:     tt.NStops,
+	}
+
+	outPath := filepath.Join(opts.outputDir, "tqi_results.json")
+	f, err := os.Create(outPath)
+	if err != nil {
+		return fmt.Errorf("create results file: %w", err)
+	}
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(results); err != nil {
+		return fmt.Errorf("write results JSON: %w", err)
+	}
+	fmt.Printf("Results written to %s\n", outPath)
+
+	return nil
 }
