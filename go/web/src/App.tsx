@@ -9,6 +9,7 @@ import TimeProfile from './components/TimeProfile'
 import PTALChart from './components/PTALChart'
 import AmenityCards from './components/AmenityCards'
 import HeatMap from './components/HeatMap'
+import CoverageStats from './components/CoverageStats'
 import WalkScoreTable from './components/WalkScoreTable'
 import Footer from './components/Footer'
 
@@ -53,6 +54,9 @@ function Dashboard() {
         {data.narrative && <Narrative paragraphs={data.narrative} />}
         <ScoreBreakdown tqi={data.tqi} />
         {data.route_los && <RouteTable routes={data.route_los} systemLos={data.system_los} />}
+        {data.detailed_analysis && (
+          <CoverageStats da={data.detailed_analysis} gridPoints={data.grid_points} nStops={data.n_stops} />
+        )}
         <TimeProfile data={data.tqi.TimeProfile} />
         {data.ptal && <PTALChart ptal={data.ptal} />}
         {data.amenities && <AmenityCards amenities={data.amenities} />}
