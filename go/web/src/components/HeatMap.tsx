@@ -1,13 +1,12 @@
-import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
+import { MapContainer, TileLayer, CircleMarker, Polyline, LayersControl, LayerGroup, Tooltip } from 'react-leaflet'
+import type { GridScorePoint, RouteShape, TransitStop } from '../lib/types'
 import 'leaflet/dist/leaflet.css'
-import type { GridScorePoint } from '../lib/types'
 
 interface Props {
   points: GridScorePoint[]
+  routeShapes?: RouteShape[] | null
+  transitStops?: TransitStop[] | null
 }
-
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
 
 function scoreColor(score: number): string {
   if (score >= 50) return '#10b981'
@@ -16,49 +15,79 @@ function scoreColor(score: number): string {
   return '#d1d5db'
 }
 
-export default function HeatMap({ points }: Props) {
-  if (!points || points.length === 0) return null
+function scoreOpacity(score: number, maxScore: number): number {
+  if (maxScore <= 0) return 0.25
+  return 0.25 + 0.35 * (score / maxScore)
+}
+
+export default function HeatMap({ points, routeShapes, transitStops }: Props) {
+  const center: [number, number] = [49.168, -121.951]
+  const maxScore = Math.max(...points.map((p) => p.score), 1)
 
   return (
     <section>
       <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-bold text-slate-900">Coverage Heatmap</h2>
+        <h2 className="text-lg font-bold text-slate-900">Spatial Heat Map</h2>
         <div className="flex-1 border-t border-slate-200" />
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div style={{ height: 500 }}>
-          <MapContainer
-            center={[49.168, -121.951]}
-            zoom={12}
-            scrollWheelZoom={true}
-            style={{ height: '100%', width: '100%' }}
-          >
-            <TileLayer url={TILE_URL} attribution={ATTRIBUTION} />
-            {points.map((pt, i) => (
-              <CircleMarker
-                key={i}
-                center={[pt.lat, pt.lon]}
-                radius={5}
-                pathOptions={{
-                  fillColor: scoreColor(pt.score),
-                  fillOpacity: 0.7,
-                  color: scoreColor(pt.score),
-                  weight: 0.5,
-                  opacity: 0.8,
-                }}
-              >
-                <Tooltip>Score: {pt.score.toFixed(1)}</Tooltip>
-              </CircleMarker>
-            ))}
-          </MapContainer>
-        </div>
-        <div className="px-4 py-3 border-t border-slate-200 flex items-center gap-4 text-xs text-slate-500">
-          <span>Legend:</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" /> 0 - 24</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-500 inline-block" /> 25 - 49</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> 50+</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-slate-300 inline-block" /> No service</span>
-        </div>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" style={{ height: 500 }}>
+        <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          />
+          <LayersControl position="topright">
+            <LayersControl.Overlay checked name="TQI Grid">
+              <LayerGroup>
+                {points.map((p, i) => (
+                  <CircleMarker
+                    key={i}
+                    center={[p.lat, p.lon]}
+                    radius={4}
+                    pathOptions={{ color: scoreColor(p.score), fillColor: scoreColor(p.score), fillOpacity: scoreOpacity(p.score, maxScore), weight: 0 }}
+                  />
+                ))}
+              </LayerGroup>
+            </LayersControl.Overlay>
+            {transitStops && transitStops.length > 0 && (
+              <LayersControl.Overlay name="Transit Stops">
+                <LayerGroup>
+                  {transitStops.map((s) => (
+                    <CircleMarker
+                      key={s.stop_id}
+                      center={[s.lat, s.lon]}
+                      radius={3}
+                      pathOptions={{ color: '#1e293b', fillColor: '#1e293b', fillOpacity: 0.7, weight: 1 }}
+                    >
+                      <Tooltip>{s.stop_name}</Tooltip>
+                    </CircleMarker>
+                  ))}
+                </LayerGroup>
+              </LayersControl.Overlay>
+            )}
+            {routeShapes && routeShapes.length > 0 && (
+              <LayersControl.Overlay name="Bus Routes">
+                <LayerGroup>
+                  {routeShapes.map((r) => (
+                    <Polyline
+                      key={r.route_id}
+                      positions={r.points.map((p) => [p[0], p[1]] as [number, number])}
+                      pathOptions={{ color: r.color, weight: 3, opacity: 0.7 }}
+                    >
+                      <Tooltip>{r.route_name}</Tooltip>
+                    </Polyline>
+                  ))}
+                </LayerGroup>
+              </LayersControl.Overlay>
+            )}
+          </LayersControl>
+        </MapContainer>
+      </div>
+      <div className="flex gap-4 justify-center mt-2 text-xs text-slate-500">
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> ≥ 50</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-500 inline-block" /> ≥ 25</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" /> &gt; 0</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-slate-300 inline-block" /> 0</span>
       </div>
     </section>
   )

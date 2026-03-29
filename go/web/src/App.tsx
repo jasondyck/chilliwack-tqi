@@ -64,7 +64,9 @@ function Dashboard() {
         <TimeProfile data={data.tqi.TimeProfile} da={data.detailed_analysis} />
         {data.ptal && <PTALChart ptal={data.ptal} />}
         {data.amenities && <AmenityTable amenities={data.amenities} />}
-        {data.grid_scores && <HeatMap points={data.grid_scores} />}
+        {data.grid_scores && (
+          <HeatMap points={data.grid_scores} routeShapes={data.route_shapes} transitStops={data.transit_stops} />
+        )}
         {data.detailed_analysis?.top_origins && <TopOrigins origins={data.detailed_analysis.top_origins} />}
         <WalkScoreTable currentTQI={data.tqi.TQI} />
         {data.detailed_analysis && <ReliabilityHistogram da={data.detailed_analysis} />}
