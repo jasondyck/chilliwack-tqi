@@ -347,14 +347,49 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		return nil, fmt.Errorf("create output dir: %w", err)
 	}
 
+	// Compute per-origin grid scores (mean reachability * 100 for each origin).
+	gridScores := make([]api.GridScorePoint, len(points))
+	for i, pt := range points {
+		var reachSum float64
+		var reachCount int
+		if i < len(metrics.Reachability) {
+			for j := 0; j < len(metrics.Reachability[i]); j++ {
+				if i == j {
+					continue
+				}
+				reachSum += metrics.Reachability[i][j]
+				reachCount++
+			}
+		}
+		var score float64
+		if reachCount > 0 {
+			score = (reachSum / float64(reachCount)) * 100.0
+		}
+		gridScores[i] = api.GridScorePoint{
+			Lat:   pt.Lat,
+			Lon:   pt.Lon,
+			Score: score,
+		}
+	}
+
+	// Generate narrative analysis text.
+	wsCategory := config.WalkScoreCategory(tqi.TQI)
+	wsDesc := config.WalkScoreDescription(tqi.TQI)
+
+	narrative := generateNarrative(opts.cityName, tqi, systemLOS, len(points), tt.NStops, wsCategory)
+
 	results := api.PipelineResults{
-		TQI:        tqi,
-		Metrics:    metrics,
-		RouteLOS:   routeLOS,
-		SystemLOS:  systemLOS,
-		PTAL:       ptal,
-		GridPoints: len(points),
-		NStops:     tt.NStops,
+		TQI:               tqi,
+		Metrics:            metrics,
+		RouteLOS:           routeLOS,
+		SystemLOS:          systemLOS,
+		PTAL:               ptal,
+		GridPoints:         len(points),
+		NStops:             tt.NStops,
+		GridScores:         gridScores,
+		Narrative:          narrative,
+		WalkScoreCategory:  wsCategory,
+		WalkScoreDesc:      wsDesc,
 	}
 
 	outPath := filepath.Join(opts.outputDir, "tqi_results.json")
@@ -372,4 +407,34 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 	fmt.Printf("Results written to %s\n", outPath)
 
 	return &results, nil
+}
+
+// generateNarrative produces human-readable analysis paragraphs.
+func generateNarrative(city string, tqi *scoring.TQIResult, sys *scoring.SystemLOSSummary, gridPts, nStops int, category string) []string {
+	paras := []string{
+		fmt.Sprintf("The Transit Quality Index for %s is %.1f out of 100, placing it in the \"%s\" category on the Walk Score transit scale.",
+			strings.Title(city), tqi.TQI, category),
+		fmt.Sprintf("Coverage scored %.1f — this measures what percentage of the city can be reached by transit from any given point. Speed scored %.1f — this captures how competitive transit travel times are compared to driving.",
+			tqi.CoverageScore, tqi.SpeedScore),
+		fmt.Sprintf("The analysis evaluated %d grid points across the city with access to %d transit stops. Reliability (coefficient of variation) was %.4f, indicating %s in travel times across different departure windows.",
+			gridPts, nStops, tqi.ReliabilityCV, reliabilityDesc(tqi.ReliabilityCV)),
+	}
+	if sys != nil {
+		paras = append(paras, fmt.Sprintf("Across %d routes, the median system headway is %.0f minutes. The best route-level grade is %s and the worst is %s. %.0f%% of routes scored LOS D or worse.",
+			sys.NRoutes, sys.MedianSystemHeadway, sys.BestGrade, sys.WorstGrade, sys.PctLOSDOrWorse))
+	}
+	return paras
+}
+
+func reliabilityDesc(cv float64) string {
+	switch {
+	case cv < 0.1:
+		return "very consistent service"
+	case cv < 0.2:
+		return "moderate consistency"
+	case cv < 0.3:
+		return "some variability"
+	default:
+		return "significant variability"
+	}
 }

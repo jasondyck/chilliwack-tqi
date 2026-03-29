@@ -93,6 +93,16 @@ func WalkScoreCategory(score float64) string {
 	return "Minimal Transit"
 }
 
+// WalkScoreDescription returns the description for a given score (0-100).
+func WalkScoreDescription(score float64) string {
+	for _, r := range WalkScoreRanges {
+		if score >= float64(r.Min) && score <= float64(r.Max) {
+			return r.Description
+		}
+	}
+	return "It is possible to get on a bus"
+}
+
 // ── TCQSM LOS grades (TCRP Report 165, 3rd Edition) ──
 
 // TCQSMLOSGrade describes a TCQSM level-of-service grade.

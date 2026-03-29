@@ -10,16 +10,27 @@ import (
 	"github.com/jasondyck/chwk-tqi/internal/scoring"
 )
 
+// GridScorePoint holds a single grid point with its composite score.
+type GridScorePoint struct {
+	Lat   float64 `json:"lat"`
+	Lon   float64 `json:"lon"`
+	Score float64 `json:"score"`
+}
+
 // PipelineResults holds the output of a completed pipeline run.
 type PipelineResults struct {
-	TQI       *scoring.TQIResult          `json:"tqi"`
-	Metrics   *scoring.ODMetrics          `json:"-"`
-	RouteLOS  []scoring.RouteLOS          `json:"route_los"`
-	SystemLOS *scoring.SystemLOSSummary   `json:"system_los"`
-	PTAL      *scoring.PTALResult         `json:"ptal"`
-	Amenities []scoring.AmenityResult     `json:"amenities"`
-	GridPoints int                        `json:"grid_points"`
-	NStops     int                        `json:"n_stops"`
+	TQI               *scoring.TQIResult        `json:"tqi"`
+	Metrics           *scoring.ODMetrics         `json:"-"`
+	RouteLOS          []scoring.RouteLOS         `json:"route_los"`
+	SystemLOS         *scoring.SystemLOSSummary  `json:"system_los"`
+	PTAL              *scoring.PTALResult        `json:"ptal"`
+	Amenities         []scoring.AmenityResult    `json:"amenities"`
+	GridPoints        int                        `json:"grid_points"`
+	NStops            int                        `json:"n_stops"`
+	GridScores        []GridScorePoint           `json:"grid_scores,omitempty"`
+	Narrative         []string                   `json:"narrative,omitempty"`
+	WalkScoreCategory string                     `json:"walkscore_category"`
+	WalkScoreDesc     string                     `json:"walkscore_desc"`
 }
 
 // Server is the HTTP API server for the TQI pipeline.
@@ -62,6 +73,9 @@ func (s *Server) registerRoutes() {
 	s.Mux.HandleFunc("GET /api/results/routes", s.handleResultsRoutes)
 	s.Mux.HandleFunc("GET /api/results/time-profile", s.handleResultsTimeProfile)
 	s.Mux.HandleFunc("GET /api/results/amenities", s.handleResultsAmenities)
+	s.Mux.HandleFunc("GET /api/results/grid", s.handleResultsGrid)
+	s.Mux.HandleFunc("GET /api/results/narrative", s.handleResultsNarrative)
+	s.Mux.HandleFunc("GET /api/results/walkscore", s.handleResultsWalkScore)
 	s.Mux.HandleFunc("POST /api/run", s.handleRun)
 
 	// SPA catch-all: serve embedded frontend if available
@@ -146,6 +160,45 @@ func (s *Server) handleResultsAmenities(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	writeJSON(w, http.StatusOK, res.Amenities)
+}
+
+func (s *Server) handleResultsGrid(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	res := s.results
+	s.mu.RUnlock()
+
+	if res == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no results available"})
+		return
+	}
+	writeJSON(w, http.StatusOK, res.GridScores)
+}
+
+func (s *Server) handleResultsNarrative(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	res := s.results
+	s.mu.RUnlock()
+
+	if res == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no results available"})
+		return
+	}
+	writeJSON(w, http.StatusOK, res.Narrative)
+}
+
+func (s *Server) handleResultsWalkScore(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	res := s.results
+	s.mu.RUnlock()
+
+	if res == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no results available"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{
+		"category":    res.WalkScoreCategory,
+		"description": res.WalkScoreDesc,
+	})
 }
 
 func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
