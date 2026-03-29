@@ -14,6 +14,7 @@ import TopOrigins from './components/TopOrigins'
 import ReliabilityHistogram from './components/ReliabilityHistogram'
 import SpeedAnalysis from './components/SpeedAnalysis'
 import WalkScoreTable from './components/WalkScoreTable'
+import IsochroneMaps from './components/IsochroneMaps'
 import Footer from './components/Footer'
 
 const queryClient = new QueryClient()
@@ -64,6 +65,7 @@ function Dashboard() {
         <TimeProfile data={data.tqi.TimeProfile} da={data.detailed_analysis} />
         {data.ptal && <PTALChart ptal={data.ptal} />}
         {data.amenities && <AmenityTable amenities={data.amenities} />}
+        {data.isochrones && <IsochroneMaps isochrones={data.isochrones} />}
         {data.grid_scores && (
           <HeatMap points={data.grid_scores} routeShapes={data.route_shapes} transitStops={data.transit_stops} />
         )}

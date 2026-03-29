@@ -14,6 +14,7 @@ import (
 	"github.com/jasondyck/chwk-tqi/internal/config"
 	"github.com/jasondyck/chwk-tqi/internal/grid"
 	"github.com/jasondyck/chwk-tqi/internal/gtfs"
+	"github.com/jasondyck/chwk-tqi/internal/isochrone"
 	"github.com/jasondyck/chwk-tqi/internal/raptor"
 	"github.com/jasondyck/chwk-tqi/internal/scoring"
 	"github.com/jasondyck/chwk-tqi/web"
@@ -346,6 +347,28 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 			r.RouteName, r.LOSGrade, r.MedianHeadway)
 	}
 
+	// 12b. Compute isochrones from stop centroid.
+	fmt.Println("Computing isochrones...")
+	var isoResults []isochrone.Result
+	centroidLat, centroidLon := 0.0, 0.0
+	for _, s := range filtered.Stops {
+		centroidLat += s.StopLat
+		centroidLon += s.StopLon
+	}
+	if len(filtered.Stops) > 0 {
+		centroidLat /= float64(len(filtered.Stops))
+		centroidLon /= float64(len(filtered.Stops))
+	}
+	for _, depMin := range []int{480, 720} { // 08:00 and 12:00
+		iso, err := isochrone.Compute(tt, centroidLat, centroidLon, depMin, points, stopLats, stopLons, float64(config.GridSpacingM))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: isochrone at %d min: %v\n", depMin, err)
+			continue
+		}
+		isoResults = append(isoResults, *iso)
+	}
+	fmt.Printf("Computed %d isochrones\n", len(isoResults))
+
 	// 13. Write JSON results to output-dir/tqi_results.json.
 	if err := os.MkdirAll(opts.outputDir, 0755); err != nil {
 		return nil, fmt.Errorf("create output dir: %w", err)
@@ -395,6 +418,7 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		WalkScoreCategory:  wsCategory,
 		WalkScoreDesc:      wsDesc,
 		DetailedAnalysis:   detailed,
+		Isochrones:         isoResults,
 	}
 
 	outPath := filepath.Join(opts.outputDir, "tqi_results.json")
