@@ -52,7 +52,7 @@ function Dashboard() {
   return (
     <div className="bg-slate-50 min-h-screen font-['Inter']">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-10 space-y-8">
-        <Hero tqi={data.tqi} category={data.walkscore_category} desc={data.walkscore_desc} />
+        <Hero tqi={data.tqi} category={data.walkscore_category} desc={data.walkscore_desc} gridPoints={data.grid_points} nStops={data.n_stops} />
         <ScoreCards tqi={data.tqi} />
         {data.narrative && <Narrative paragraphs={data.narrative} />}
         <ScoreBreakdown tqi={data.tqi} />
