@@ -10,6 +10,7 @@ import PTALChart from './components/PTALChart'
 import AmenityCards from './components/AmenityCards'
 import HeatMap from './components/HeatMap'
 import CoverageStats from './components/CoverageStats'
+import ReliabilityHistogram from './components/ReliabilityHistogram'
 import SpeedAnalysis from './components/SpeedAnalysis'
 import WalkScoreTable from './components/WalkScoreTable'
 import Footer from './components/Footer'
@@ -64,6 +65,7 @@ function Dashboard() {
         {data.amenities && <AmenityCards amenities={data.amenities} />}
         {data.grid_scores && <HeatMap points={data.grid_scores} />}
         <WalkScoreTable currentTQI={data.tqi.TQI} />
+        {data.detailed_analysis && <ReliabilityHistogram da={data.detailed_analysis} />}
         <Footer gridPoints={data.grid_points} stops={data.n_stops} />
       </div>
     </div>
