@@ -47,7 +47,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
     </script>
     <script>
       const CHART_DATA = {{ chart_data_json }};
-      document.addEventListener('DOMContentLoaded', () => {
+      window.addEventListener('load', function() { setTimeout(function() { try {
         Chart.defaults.font.family = "'Inter', sans-serif";
         Chart.defaults.font.size = 12;
         Chart.defaults.color = '#64748b';
@@ -131,7 +131,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
 
         // TSR distribution (doughnut) — filter out zero segments
         if (CHART_DATA.tsr) {
-          const tsrLabels = ['Slower than walking (<5 km/h)', 'Marginal (5–10 km/h)', 'Useful (10–20 km/h)', 'Competitive (20+ km/h)'];
+          const tsrLabels = ['Slower than walking (<5 km/h)', 'Marginal (5-10 km/h)', 'Useful (10-20 km/h)', 'Competitive (20+ km/h)'];
           const tsrValues = [CHART_DATA.tsr.slower, CHART_DATA.tsr.band_5_10, CHART_DATA.tsr.band_10_20, CHART_DATA.tsr.band_20_plus];
           const tsrColors = ['#ef4444', '#f59e0b', '#10b981', '#059669'];
           // Filter out zero segments
@@ -243,7 +243,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
           new Chart(document.getElementById('chart-ptal'), {
             type: 'bar',
             data: {
-              labels: CHART_DATA.ptal.labels.map(function(g, i) { return g + '\n' + ptalDesc[i]; }),
+              labels: CHART_DATA.ptal.labels.map(function(g, i) { return g + ' ' + ptalDesc[i]; }),
               datasets: [{
                 data: CHART_DATA.ptal.counts,
                 backgroundColor: ptalColors,
@@ -280,7 +280,8 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
             }]
           });
         }
-      });
+      } catch(e) { console.error('Chart init error:', e); }
+      }, 500); });
     </script>
     <style>
         .material-symbols-outlined {
