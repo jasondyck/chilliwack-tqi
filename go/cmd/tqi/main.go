@@ -54,9 +54,8 @@ func newRunCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Bool("download", true, "Download fresh GTFS data")
-	cmd.Flags().Bool("use-cache", true, "Use cached travel time matrix if available")
-	cmd.Flags().Bool("parallel", true, "Parallelise RAPTOR runs")
+	cmd.Flags().Bool("no-download", false, "Skip GTFS download")
+	cmd.Flags().Bool("no-cache", false, "Ignore cached matrix")
 	cmd.Flags().Int("workers", 0, "Number of parallel workers (0 = auto)")
 	cmd.Flags().Bool("equity", false, "Include census equity overlay")
 	cmd.Flags().String("output-dir", "output", "Output directory")
@@ -90,7 +89,6 @@ func newCompareCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().String("cities", "chilliwack,victoria,kelowna", "Comma-separated list of cities to compare")
-	cmd.Flags().Bool("parallel", true, "Parallelise RAPTOR runs")
 	cmd.Flags().Int("workers", 0, "Number of parallel workers (0 = auto)")
 	return cmd
 }
