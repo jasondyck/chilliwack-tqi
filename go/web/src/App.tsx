@@ -59,7 +59,7 @@ function Dashboard() {
           <CoverageStats da={data.detailed_analysis} gridPoints={data.grid_points} nStops={data.n_stops} />
         )}
         {data.detailed_analysis && <SpeedAnalysis da={data.detailed_analysis} />}
-        <TimeProfile data={data.tqi.TimeProfile} />
+        <TimeProfile data={data.tqi.TimeProfile} da={data.detailed_analysis} />
         {data.ptal && <PTALChart ptal={data.ptal} />}
         {data.amenities && <AmenityCards amenities={data.amenities} />}
         {data.grid_scores && <HeatMap points={data.grid_scores} />}
