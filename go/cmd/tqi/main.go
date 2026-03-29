@@ -323,6 +323,10 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 	fmt.Println("Computing TQI...")
 	tqi := scoring.ComputeTQI(metrics)
 
+	// 11b. Compute detailed analysis for frontend dashboard.
+	fmt.Println("Computing detailed analysis...")
+	detailed := scoring.ComputeDetailedAnalysis(points, metrics, tqi, ptal, stopLats, stopLons)
+
 	// 12. Print results to stdout.
 	fmt.Println()
 	fmt.Println("════════════════════════════════════")
@@ -390,6 +394,7 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		Narrative:          narrative,
 		WalkScoreCategory:  wsCategory,
 		WalkScoreDesc:      wsDesc,
+		DetailedAnalysis:   detailed,
 	}
 
 	outPath := filepath.Join(opts.outputDir, "tqi_results.json")

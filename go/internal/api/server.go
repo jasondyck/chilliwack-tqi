@@ -31,6 +31,7 @@ type PipelineResults struct {
 	Narrative         []string                   `json:"narrative,omitempty"`
 	WalkScoreCategory string                     `json:"walkscore_category"`
 	WalkScoreDesc     string                     `json:"walkscore_desc"`
+	DetailedAnalysis  *scoring.DetailedAnalysis   `json:"detailed_analysis,omitempty"`
 }
 
 // Server is the HTTP API server for the TQI pipeline.
