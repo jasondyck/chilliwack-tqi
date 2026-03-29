@@ -15,6 +15,7 @@ import ReliabilityHistogram from './components/ReliabilityHistogram'
 import SpeedAnalysis from './components/SpeedAnalysis'
 import WalkScoreTable from './components/WalkScoreTable'
 import IsochroneMaps from './components/IsochroneMaps'
+import EquityMap from './components/EquityMap'
 import Footer from './components/Footer'
 
 const queryClient = new QueryClient()
@@ -66,6 +67,7 @@ function Dashboard() {
         {data.ptal && <PTALChart ptal={data.ptal} />}
         {data.amenities && <AmenityTable amenities={data.amenities} />}
         {data.isochrones && <IsochroneMaps isochrones={data.isochrones} />}
+        {data.equity && <EquityMap equity={data.equity} />}
         {data.grid_scores && (
           <HeatMap points={data.grid_scores} routeShapes={data.route_shapes} transitStops={data.transit_stops} />
         )}

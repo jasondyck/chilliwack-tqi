@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/jasondyck/chwk-tqi/internal/api"
 	"github.com/jasondyck/chwk-tqi/internal/config"
+	"github.com/jasondyck/chwk-tqi/internal/equity"
 	"github.com/jasondyck/chwk-tqi/internal/grid"
 	"github.com/jasondyck/chwk-tqi/internal/gtfs"
 	"github.com/jasondyck/chwk-tqi/internal/isochrone"
@@ -399,6 +401,27 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		}
 	}
 
+	// 12c. Equity overlay (conditional — requires census data files).
+	var eqResult *equity.Result
+	boundaryPath := filepath.Join("data", "census", "da_boundaries.geojson")
+	incomePath := filepath.Join("data", "census", "da_income.json")
+	if _, err := os.Stat(boundaryPath); err == nil {
+		if _, err := os.Stat(incomePath); err == nil {
+			fmt.Println("Computing equity overlay...")
+			gridScoreValues := make([]float64, len(gridScores))
+			for i, gs := range gridScores {
+				gridScoreValues[i] = gs.Score
+			}
+			eqResult, err = equity.Compute(boundaryPath, incomePath, points, gridScoreValues)
+			if err != nil {
+				log.Printf("equity computation: %v", err)
+				eqResult = nil
+			} else {
+				fmt.Printf("Equity overlay: correlation r=%.3f\n", eqResult.Correlation)
+			}
+		}
+	}
+
 	// Generate narrative analysis text.
 	wsCategory := config.WalkScoreCategory(tqi.TQI)
 	wsDesc := config.WalkScoreDescription(tqi.TQI)
@@ -419,6 +442,10 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		WalkScoreDesc:      wsDesc,
 		DetailedAnalysis:   detailed,
 		Isochrones:         isoResults,
+	}
+
+	if eqResult != nil {
+		results.Equity = eqResult
 	}
 
 	outPath := filepath.Join(opts.outputDir, "tqi_results.json")

@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/jasondyck/chwk-tqi/internal/equity"
 	"github.com/jasondyck/chwk-tqi/internal/isochrone"
 	"github.com/jasondyck/chwk-tqi/internal/scoring"
 )
@@ -34,6 +35,7 @@ type PipelineResults struct {
 	WalkScoreDesc     string                     `json:"walkscore_desc"`
 	DetailedAnalysis  *scoring.DetailedAnalysis   `json:"detailed_analysis,omitempty"`
 	Isochrones        []isochrone.Result          `json:"isochrones,omitempty"`
+	Equity            *equity.Result              `json:"equity,omitempty"`
 }
 
 // Server is the HTTP API server for the TQI pipeline.
