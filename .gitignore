@@ -40,3 +40,5 @@ test-results/
 # OS
 .DS_Store
 go/web/node_modules/
+go/tqi
+go/bin/

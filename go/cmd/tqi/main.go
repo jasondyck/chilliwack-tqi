@@ -16,6 +16,7 @@ import (
 	"github.com/jasondyck/chwk-tqi/internal/gtfs"
 	"github.com/jasondyck/chwk-tqi/internal/raptor"
 	"github.com/jasondyck/chwk-tqi/internal/scoring"
+	"github.com/jasondyck/chwk-tqi/web"
 )
 
 func main() {
@@ -45,8 +46,10 @@ func newServeCmd() *cobra.Command {
 		Short: "Start the TQI API server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			port, _ := cmd.Flags().GetInt("port")
-			fmt.Printf("Starting TQI API server on port %d\n", port)
-			return api.NewServer(port).Start()
+			fmt.Printf("Starting TQI API server on http://localhost:%d\n", port)
+			srv := api.NewServer(port)
+			srv.WebFS = web.DistFS()
+			return srv.Start()
 		},
 	}
 	cmd.Flags().Int("port", 8080, "Port to listen on")

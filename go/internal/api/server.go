@@ -26,6 +26,7 @@ type PipelineResults struct {
 type Server struct {
 	Port    int
 	Mux     *http.ServeMux
+	WebFS   http.FileSystem // embedded frontend (nil = no SPA serving)
 	mu      sync.RWMutex
 	results *PipelineResults
 	running bool
@@ -62,6 +63,27 @@ func (s *Server) registerRoutes() {
 	s.Mux.HandleFunc("GET /api/results/time-profile", s.handleResultsTimeProfile)
 	s.Mux.HandleFunc("GET /api/results/amenities", s.handleResultsAmenities)
 	s.Mux.HandleFunc("POST /api/run", s.handleRun)
+
+	// SPA catch-all: serve embedded frontend if available
+	s.Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if s.WebFS == nil {
+			http.NotFound(w, r)
+			return
+		}
+		// Try serving the exact file; fall back to index.html for SPA routing
+		path := r.URL.Path
+		if path == "/" {
+			path = "/index.html"
+		}
+		f, err := s.WebFS.Open(path[1:])
+		if err != nil {
+			// SPA fallback: serve index.html
+			r.URL.Path = "/"
+		} else {
+			f.Close()
+		}
+		http.FileServer(s.WebFS).ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
