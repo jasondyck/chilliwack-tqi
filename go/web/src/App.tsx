@@ -7,7 +7,7 @@ import ScoreBreakdown from './components/ScoreBreakdown'
 import RouteTable from './components/RouteTable'
 import TimeProfile from './components/TimeProfile'
 import PTALChart from './components/PTALChart'
-import AmenityCards from './components/AmenityCards'
+import AmenityTable from './components/AmenityTable'
 import HeatMap from './components/HeatMap'
 import CoverageStats from './components/CoverageStats'
 import TopOrigins from './components/TopOrigins'
@@ -63,7 +63,7 @@ function Dashboard() {
         {data.detailed_analysis && <SpeedAnalysis da={data.detailed_analysis} />}
         <TimeProfile data={data.tqi.TimeProfile} da={data.detailed_analysis} />
         {data.ptal && <PTALChart ptal={data.ptal} />}
-        {data.amenities && <AmenityCards amenities={data.amenities} />}
+        {data.amenities && <AmenityTable amenities={data.amenities} />}
         {data.grid_scores && <HeatMap points={data.grid_scores} />}
         {data.detailed_analysis?.top_origins && <TopOrigins origins={data.detailed_analysis.top_origins} />}
         <WalkScoreTable currentTQI={data.tqi.TQI} />
