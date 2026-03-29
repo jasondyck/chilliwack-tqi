@@ -27,16 +27,16 @@ export default function WalkScoreTable({ currentTQI }: Props) {
             </tr>
           </thead>
           <tbody>
-            {ranges.map((r) => {
+            {ranges.map((r, i) => {
               const active = currentTQI >= r.min && currentTQI <= r.max
               return (
                 <tr
                   key={r.label}
-                  className={`border-b border-slate-100 ${active ? 'bg-blue-50 font-semibold' : 'hover:bg-slate-50'}`}
+                  className={`border-b border-slate-100 ${active ? 'bg-amber-50 font-semibold' : i % 2 === 1 ? 'bg-slate-50/50' : 'hover:bg-slate-50'}`}
                 >
                   <td className="px-4 py-3 text-slate-700">
                     {r.min} - {r.max}
-                    {active && <span className="ml-2 text-blue-600 text-xs">(current)</span>}
+                    {active && <span className="ml-2 text-amber-700 text-xs">(current)</span>}
                   </td>
                   <td className="px-4 py-3 text-slate-900">{r.label}</td>
                   <td className="px-4 py-3 text-slate-600">{r.desc}</td>

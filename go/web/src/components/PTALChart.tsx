@@ -44,7 +44,7 @@ export default function PTALChart({ ptal }: Props) {
               contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
               formatter={(v) => [Number(v), 'Grid Points']}
             />
-            <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={60}>
+            <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={60} label={{ position: 'top', fontSize: 11, fontWeight: 600, fill: '#334155' }}>
               {data.map((d) => (
                 <Cell key={d.grade} fill={gradeColors[d.grade] ?? '#94a3b8'} />
               ))}

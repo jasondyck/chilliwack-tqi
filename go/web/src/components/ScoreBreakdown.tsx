@@ -27,10 +27,11 @@ export default function ScoreBreakdown({ tqi }: Props) {
             <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 13 }} />
             <YAxis domain={[0, Math.ceil(maxVal * 1.15)]} tick={{ fill: '#64748b', fontSize: 13 }} />
             <Tooltip
-              contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
+              contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, color: 'white', padding: '8px 12px', fontSize: 12 }}
+              labelStyle={{ color: '#94a3b8' }}
               formatter={(v) => [Number(v).toFixed(1), 'Score']}
             />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80}>
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80} label={{ position: 'top', fontSize: 11, fontWeight: 600, fill: '#334155' }}>
               {data.map((d, i) => (
                 <Cell key={i} fill={d.color} />
               ))}
