@@ -92,16 +92,43 @@ func dayToWeekday(day string) time.Weekday {
 }
 
 // FilterFeed filters a feed to only the given routes and the target day's services.
+// If targetDay is empty, the best weekday is auto-selected via FindBestWeekday.
 func FilterFeed(feed *Feed, routes []string, targetDay string) (*Feed, error) {
+	dayName := targetDay
+	if dayName == "" {
+		dayName, _ = FindBestWeekday(feed)
+	}
+
 	// Resolve active services for the target day
+	refDate := findReferenceDate(feed, dayName)
+	refStr := refDate.Format("20060102")
+
 	activeServices := make(map[string]bool)
 	for _, cal := range feed.Calendar {
-		if calendarDayActive(cal, targetDay) {
+		if !calendarDayActive(cal, dayName) {
+			continue
+		}
+		// Check date range
+		if cal.StartDate != "" && cal.EndDate != "" {
+			if refStr >= cal.StartDate && refStr <= cal.EndDate {
+				activeServices[cal.ServiceID] = true
+			}
+		} else {
 			activeServices[cal.ServiceID] = true
 		}
 	}
 
-	// TODO: handle calendar_dates exceptions if needed in the future
+	// Handle calendar_dates exceptions
+	for _, cd := range feed.CalendarDates {
+		if cd.Date != refStr {
+			continue
+		}
+		if cd.ExceptionType == 1 {
+			activeServices[cd.ServiceID] = true
+		} else if cd.ExceptionType == 2 {
+			delete(activeServices, cd.ServiceID)
+		}
+	}
 
 	// Filter routes by short name
 	wantRoutes := make(map[string]bool)
