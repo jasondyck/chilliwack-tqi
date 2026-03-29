@@ -260,7 +260,7 @@ def compare(cities, parallel, workers):
     from tqi.config import CITY_CONFIGS, DEPARTURE_TIMES
     from tqi.gtfs.download import download_gtfs
     from tqi.gtfs.parse import load_gtfs
-    from tqi.gtfs.filter import filter_to_chilliwack, _resolve_active_services, _find_reference_date
+    from tqi.gtfs.filter import filter_to_chilliwack, _find_best_weekday
     from tqi.grid.generate import generate_grid
     from tqi.raptor.timetable import build_raptor_timetable
     from tqi.raptor.matrix import compute_matrix
@@ -287,20 +287,13 @@ def compare(cities, parallel, workers):
         # Parse
         feed = load_gtfs(gtfs_dir=city_gtfs_dir)
 
-        # Filter (if routes specified, otherwise use all)
+        # Filter routes
         if cfg["routes"]:
             feed = filter_to_chilliwack(feed, routes=cfg["routes"])
         else:
-            # Use all routes — just filter by active service day
-            ref_date = _find_reference_date(feed.calendar, "wednesday")
-            active = _resolve_active_services(feed.calendar, feed.calendar_dates, "wednesday", ref_date)
-            trip_mask = feed.trips["service_id"].isin(active)
-            feed.trips = feed.trips[trip_mask].reset_index(drop=True)
-            trip_ids = set(feed.trips["trip_id"])
-            feed.stop_times = feed.stop_times[feed.stop_times["trip_id"].isin(trip_ids)].reset_index(drop=True)
-            used_stops = set(feed.stop_times["stop_id"])
-            feed.stops = feed.stops[feed.stops["stop_id"].isin(used_stops)].reset_index(drop=True)
-            print(f"All routes: {len(feed.routes)} routes, {len(feed.trips)} trips, {len(feed.stops)} stops")
+            # Use all routes — auto-select best weekday
+            all_route_names = feed.routes["route_short_name"].tolist()
+            feed = filter_to_chilliwack(feed, routes=all_route_names)
 
         # Build timetable
         timetable = build_raptor_timetable(feed)

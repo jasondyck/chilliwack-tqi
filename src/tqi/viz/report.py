@@ -58,7 +58,6 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
         Chart.defaults.plugins.tooltip.padding = 10;
         Chart.defaults.elements.bar.borderRadius = 4;
         Chart.defaults.elements.line.tension = 0.3;
-        Chart.defaults.scale.grid = { color: '#e2e8f0' };
 
         // Time-of-day profile
         if (CHART_DATA.time_profile) {
