@@ -86,6 +86,7 @@ func ComputeDetailedAnalysis(
 	}
 
 	// --- OD pair counts, TSR, travel times ---
+	const maxValidTravelTimeMin = 90.0
 	var nValid, nReachable int
 	var tsrVals []float64
 	var ttVals []float64
@@ -105,7 +106,7 @@ func ComputeDetailedAnalysis(
 				continue
 			}
 			tt := metrics.MeanTravelTime[i][j]
-			if tt > 0 && tt <= 90 {
+			if tt > 0 && tt <= maxValidTravelTimeMin {
 				nValid++
 				if i < len(metrics.Reachability) && j < len(metrics.Reachability[i]) && metrics.Reachability[i][j] > 0 {
 					nReachable++
@@ -132,12 +133,11 @@ func ComputeDetailedAnalysis(
 
 	// Max origin reachability %.
 	maxOriginReach := 0.0
-	for i, cnt := range originReach {
+	for _, cnt := range originReach {
 		possibleDests := nDests - 1 // exclude self
 		if possibleDests <= 0 {
 			continue
 		}
-		_ = i
 		pct := float64(cnt) / float64(possibleDests) * 100.0
 		if pct > maxOriginReach {
 			maxOriginReach = pct
