@@ -497,6 +497,8 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
         </div>
         <p class="text-slate-500 mb-6 text-sm">Each route graded per the Transit Capacity and Quality of Service Manual (TCRP Report 165) based on median headway.</p>
 
+        {% set max_hw = da.route_los | map(attribute='median_headway_min') | max %}
+        {% set scale_max = [max_hw * 1.1, 1] | max %}
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <!-- Route LOS Bars (HTML) -->
             <div class="lg:col-span-3 bg-white border border-slate-200 rounded-xl shadow-sm p-6 overflow-hidden">
@@ -505,7 +507,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
                         <h3 class="text-lg font-bold text-slate-900 font-headline">Headway by Route</h3>
                         <p class="text-sm text-slate-500">Median headway in minutes</p>
                     </div>
-                    <span class="text-[10px] font-label text-slate-400 uppercase tracking-widest">Scale: 0&ndash;80 min</span>
+                    <span class="text-[10px] font-label text-slate-400 uppercase tracking-widest">Scale: linear</span>
                 </div>
                 <div class="space-y-4">
                     {% for r in da.route_los %}
@@ -515,7 +517,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
                             <p class="text-[10px] text-slate-400 uppercase tracking-tighter truncate">{{ r.route_long_name }}</p>
                         </div>
                         <div class="flex-1 relative h-8 bg-slate-50 rounded-r-lg overflow-hidden flex items-center">
-                            {% set bar_pct = [r.median_headway_min, 80] | min / 80 * 100 %}
+                            {% set bar_pct = r.median_headway_min / scale_max * 100 %}
                             {% if r.los_grade in ['A', 'B'] %}
                                 {% set bar_color = 'bg-emerald-500' %}
                             {% elif r.los_grade == 'C' %}
@@ -553,7 +555,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
                             <span class="font-bold text-slate-900">{{ "%.1f"|format(da.system_los_summary.median_system_headway_min) }} min</span>
                         </div>
                         <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-orange-500 rounded-full" style="width: {{ [da.system_los_summary.median_system_headway_min / 80 * 100, 100] | min }}%"></div>
+                            <div class="h-full bg-orange-500 rounded-full" style="width: {{ [da.system_los_summary.median_system_headway_min / scale_max * 100, 100] | min }}%"></div>
                         </div>
                     </div>
                 </div>
