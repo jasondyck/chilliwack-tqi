@@ -15,6 +15,8 @@ export interface PipelineResponse {
   equity: EquityResult | null
   route_shapes: RouteShape[] | null
   transit_stops: TransitStop[] | null
+  neighbourhood_scores: NeighbourhoodScore[] | null
+  neighbourhood_boundaries: unknown | null
 }
 
 export interface TQIResult {
@@ -120,6 +122,15 @@ export interface RouteShape {
   route_name: string
   color: string
   points: number[][]
+}
+
+export interface NeighbourhoodScore {
+  name: string
+  population: number
+  tqi: number
+  coverage_score: number
+  speed_score: number
+  grid_point_count: number
 }
 
 export interface TransitStop {
