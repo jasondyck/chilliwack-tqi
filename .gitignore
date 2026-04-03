@@ -26,6 +26,9 @@ output/
 # Claude Code local config
 .claude/
 
+# VS Code
+.vscode/
+
 # Cursor
 .cursor/
 
@@ -47,6 +50,7 @@ test-results/
 .DS_Store
 go/web/node_modules/
 go/tqi
+tqi-server
 go/bin/
 go/data/
 go/debug
