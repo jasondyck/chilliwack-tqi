@@ -10,6 +10,11 @@ const barColors: Record<string, string> = {
   D: '#f59e0b', E: '#f97316', F: '#e11d48',
 }
 
+const barTextColors: Record<string, string> = {
+  A: 'text-white', B: 'text-white', C: 'text-slate-900',
+  D: 'text-slate-900', E: 'text-slate-900', F: 'text-white',
+}
+
 const badgeBg: Record<string, string> = {
   A: 'bg-emerald-100 text-emerald-800',
   B: 'bg-green-100 text-green-700',
@@ -38,12 +43,14 @@ export default function RouteTable({ routes, systemLos }: Props) {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px]">
           {/* Headway bars */}
-          <div className="p-4 overflow-x-auto">
+          <div className="p-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Headway by route chart">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">Headway by Route</h3>
             <div className="min-w-[360px] space-y-2">
-              {routes.map((r) => {
+              {(() => {
+                const maxHw = Math.max(...routes.map((r) => r.median_headway ?? 0), 1)
+                return routes.map((r) => {
                 const hw = r.median_headway ?? 0
-                const pct = Math.min(hw, 80) / 80 * 100
+                const pct = (hw / maxHw) * 100
                 const color = barColors[r.los_grade] ?? '#94a3b8'
                 return (
                   <div key={r.route_id} className="flex items-center gap-2">
@@ -55,7 +62,7 @@ export default function RouteTable({ routes, systemLos }: Props) {
                         style={{ width: `${pct}%`, background: color }}
                       >
                         {pct > 20 && (
-                          <span className="text-[11px] font-bold text-white">{hw.toFixed(0)} min</span>
+                          <span className={`text-[11px] font-bold ${barTextColors[r.los_grade] ?? 'text-white'}`}>{hw.toFixed(0)} min</span>
                         )}
                       </div>
                       {pct <= 20 && (
@@ -69,7 +76,8 @@ export default function RouteTable({ routes, systemLos }: Props) {
                     </div>
                   </div>
                 )
-              })}
+              })
+              })()}
             </div>
           </div>
 
@@ -94,7 +102,7 @@ export default function RouteTable({ routes, systemLos }: Props) {
                   <tr key={g.grade} className="border-b border-slate-800 hover:bg-slate-800/50">
                     <td className={`py-1 font-bold ${g.color}`}>{g.grade}</td>
                     <td className="py-1 text-slate-400">{g.range}</td>
-                    <td className="py-1 text-slate-500">{g.desc}</td>
+                    <td className="py-1 text-slate-400">{g.desc}</td>
                   </tr>
                 ))}
               </tbody>
@@ -102,7 +110,7 @@ export default function RouteTable({ routes, systemLos }: Props) {
           </div>
         </div>
       </div>
-      <p className="text-xs text-slate-400 mt-2">
+      <p className="text-xs text-slate-500 mt-2">
         Grading follows the Transit Capacity and Quality of Service Manual (TCQSM, TCRP Report 165, 3rd Edition).
       </p>
     </section>

@@ -6,7 +6,7 @@ interface Props {
 
 function tqiColor(tqi: number): string {
   if (tqi >= 5) return 'text-emerald-600'
-  if (tqi >= 2.5) return 'text-amber-600'
+  if (tqi >= 2.5) return 'text-amber-700'
   return 'text-red-600'
 }
 
@@ -21,14 +21,14 @@ export default function NeighbourhoodTable({ scores }: Props) {
         <div className="flex-1 border-t border-slate-200" />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Neighbourhood scores table">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Neighbourhood</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600 min-w-[160px]">Population</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600">TQI</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-400">Grid Points</th>
+                <th className="text-right px-4 py-3 font-semibold text-slate-500">Grid Points</th>
               </tr>
             </thead>
             <tbody>
@@ -48,7 +48,7 @@ export default function NeighbourhoodTable({ scores }: Props) {
                     <td className={`px-4 py-3 text-right font-bold tabular-nums ${tqiColor(s.tqi)}`}>
                       {s.tqi.toFixed(1)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-400">
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-500">
                       {s.grid_point_count.toLocaleString()}
                     </td>
                   </tr>
@@ -58,7 +58,7 @@ export default function NeighbourhoodTable({ scores }: Props) {
           </table>
         </div>
       </div>
-      <p className="text-xs text-slate-400 mt-2">
+      <p className="text-xs text-slate-500 mt-2">
         City-wide TQI is population-weighted: neighbourhoods with more residents contribute proportionally more to the overall score.
       </p>
     </section>

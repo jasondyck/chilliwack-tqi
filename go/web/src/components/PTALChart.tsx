@@ -51,7 +51,7 @@ export default function PTALChart({ ptal }: Props) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <p className="text-xs text-slate-400 mt-3">
+        <p className="text-xs text-slate-500 mt-3">
           Public Transport Accessibility Level (PTAL) using TfL methodology. Higher grades indicate better transit accessibility.
         </p>
       </div>

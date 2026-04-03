@@ -23,7 +23,7 @@ export default function Hero({ tqi, category }: Props) {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 relative overflow-hidden">
       <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl" />
       <div className="relative">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1 mb-4">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-1 mb-4">
           <span className="material-symbols-outlined text-sm text-blue-500">location_on</span>
           British Columbia &gt; Fraser Valley
         </div>
@@ -33,12 +33,12 @@ export default function Hero({ tqi, category }: Props) {
         <p className="text-sm text-slate-500 max-w-xl mb-6">
           Population-weighted assessment of public transit service quality &mdash; coverage, speed, reliability, and accessibility across 12 neighbourhoods.
         </p>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 mb-1">Population-Weighted Score</div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 mb-1">Population-Weighted Score</div>
         <div className="flex items-baseline gap-2 mb-3">
           <span className="text-5xl sm:text-7xl font-extrabold tabular-nums text-slate-900">
             {tqi.TQI.toFixed(1)}
           </span>
-          <span className="text-2xl text-slate-400">/ 100</span>
+          <span className="text-2xl text-slate-500">/ 100</span>
         </div>
         <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-3">
           <div

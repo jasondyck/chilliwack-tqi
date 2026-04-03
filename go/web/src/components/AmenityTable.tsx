@@ -16,7 +16,7 @@ export default function AmenityTable({ amenities }: Props) {
         <div className="flex-1 border-t border-slate-200" />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Amenity access table">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">

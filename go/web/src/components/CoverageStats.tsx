@@ -24,7 +24,7 @@ export default function CoverageStats({ da, gridPoints, nStops }: Props) {
 
   const accentStyles = {
     red: { border: 'border-l-4 border-l-red-500', text: 'text-red-500' },
-    amber: { border: 'border-l-4 border-l-amber-500', text: 'text-amber-500' },
+    amber: { border: 'border-l-4 border-l-amber-600', text: 'text-amber-700' },
   }
 
   return (

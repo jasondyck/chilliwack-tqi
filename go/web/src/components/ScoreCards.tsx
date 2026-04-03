@@ -21,7 +21,7 @@ export default function ScoreCards({ tqi }: Props) {
       value: tqi.TQI.toFixed(1),
       desc: '50% coverage + 50% speed',
       icon: 'star',
-      color: 'text-amber-600',
+      color: 'text-amber-700',
       bg: 'bg-amber-50',
       hoverBorder: 'hover:border-amber-400',
     },
@@ -63,7 +63,7 @@ export default function ScoreCards({ tqi }: Props) {
           </div>
           <p className="text-sm font-medium text-slate-500">{c.label}</p>
           <p className={`text-2xl font-bold ${c.color} mt-1`}>{c.value}</p>
-          <p className="text-xs text-slate-400 mt-1">{c.desc}</p>
+          <p className="text-xs text-slate-500 mt-1">{c.desc}</p>
         </div>
       ))}
     </div>

@@ -56,7 +56,7 @@ function Dashboard() {
 
   return (
     <div className="bg-slate-50 min-h-screen font-['Inter']">
-      <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-10 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-10 space-y-8">
         <Hero tqi={data.tqi} category={data.walkscore_category} />
         <ScoreCards tqi={data.tqi} />
         {data.neighbourhood_scores && <NeighbourhoodTable scores={data.neighbourhood_scores} />}
@@ -81,7 +81,7 @@ function Dashboard() {
         <Methodology />
         <Standards />
         <Footer gridPoints={data.grid_points} stops={data.n_stops} />
-      </div>
+      </main>
     </div>
   )
 }

@@ -45,7 +45,7 @@ export default function WalkScoreTable({ currentTQI }: Props) {
             })}
           </tbody>
         </table>
-        <p className="px-4 py-3 text-xs text-slate-400 border-t border-slate-200">
+        <p className="px-4 py-3 text-xs text-slate-500 border-t border-slate-200">
           Classification based on Walk Score Transit Score methodology. Source: walkscore.com
         </p>
       </div>

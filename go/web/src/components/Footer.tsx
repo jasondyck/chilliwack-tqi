@@ -13,10 +13,10 @@ export default function Footer({ gridPoints, stops }: Props) {
           </div>
           <div>
             <div className="text-sm font-semibold text-slate-700">Chilliwack Transit Quality Index</div>
-            <div className="text-xs text-slate-400">v0.1.0</div>
+            <div className="text-xs text-slate-500">v0.1.0</div>
           </div>
         </div>
-        <div className="text-xs text-slate-400 italic sm:ml-auto max-w-md">
+        <div className="text-xs text-slate-500 italic sm:ml-auto max-w-md">
           Generated {new Date().toLocaleDateString()} from BC Transit GTFS data.
           {gridPoints > 0 && ` ${gridPoints.toLocaleString()} grid points, ${stops} stops analyzed.`}
           {' '}Built with Go + React + Recharts + Leaflet.
