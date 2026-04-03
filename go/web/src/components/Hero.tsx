@@ -36,9 +36,9 @@ export default function Hero({ tqi, category, desc: _desc, gridPoints, nStops }:
             Chilliwack Transit Quality Index
           </h1>
           <p className="text-sm text-slate-500 max-w-xl mb-6">
-            Comprehensive multi-metric assessment of public transit service quality &mdash; coverage, speed, reliability, and accessibility.
+            Population-weighted assessment of public transit service quality &mdash; coverage, speed, reliability, and accessibility across 12 neighbourhoods.
           </p>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 mb-1">Overall Score</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 mb-1">Population-Weighted Score</div>
           <div className="flex items-baseline gap-2 mb-3">
             <span className="text-5xl sm:text-7xl font-extrabold tabular-nums text-slate-900">
               {tqi.TQI.toFixed(1)}
