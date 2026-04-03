@@ -3,6 +3,7 @@ package neighbourhood
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"os"
 
@@ -89,19 +90,40 @@ func LoadBoundaries(path string) ([]Neighbourhood, json.RawMessage, error) {
 
 		pop := population2021[name]
 
-		// Parse polygon coordinates — GeoJSON Polygon is [ring][point][lon,lat]
-		var rings [][][]float64
-		if err := json.Unmarshal(feat.Geometry.Coordinates, &rings); err != nil {
-			return nil, nil, fmt.Errorf("parse polygon for %s: %w", name, err)
+		// Parse polygon coordinates.
+		// Polygon: [ring][point][lon,lat]
+		// MultiPolygon: [polygon][ring][point][lon,lat]
+		var outerRing [][]float64
+		if feat.Geometry.Type == "MultiPolygon" {
+			var multi [][][][]float64
+			if err := json.Unmarshal(feat.Geometry.Coordinates, &multi); err != nil {
+				log.Printf("skip MultiPolygon %s: %v", name, err)
+				continue
+			}
+			for _, poly := range multi {
+				if len(poly) > 0 && len(poly[0]) > len(outerRing) {
+					ring := make([][]float64, len(poly[0]))
+					for i, pt := range poly[0] {
+						ring[i] = []float64{pt[0], pt[1]}
+					}
+					outerRing = ring
+				}
+			}
+		} else {
+			var rings [][][]float64
+			if err := json.Unmarshal(feat.Geometry.Coordinates, &rings); err != nil {
+				log.Printf("skip Polygon %s: %v", name, err)
+				continue
+			}
+			if len(rings) > 0 {
+				outerRing = make([][]float64, len(rings[0]))
+				for i, pt := range rings[0] {
+					outerRing[i] = []float64{pt[0], pt[1]}
+				}
+			}
 		}
-		if len(rings) == 0 {
+		if len(outerRing) == 0 {
 			continue
-		}
-
-		// Use the outer ring (first ring)
-		outerRing := make([][]float64, len(rings[0]))
-		for i, pt := range rings[0] {
-			outerRing[i] = []float64{pt[0], pt[1]}
 		}
 
 		neighbourhoods = append(neighbourhoods, Neighbourhood{
