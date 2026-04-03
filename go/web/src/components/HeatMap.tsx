@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, CircleMarker, Polyline, LayersControl, LayerGroup, Tooltip } from 'react-leaflet'
+import { MapContainer, TileLayer, CircleMarker, Polyline, LayersControl, LayerGroup, Tooltip, GeoJSON } from 'react-leaflet'
 import type { GridScorePoint, RouteShape, TransitStop } from '../lib/types'
 import 'leaflet/dist/leaflet.css'
 
@@ -6,6 +6,7 @@ interface Props {
   points: GridScorePoint[]
   routeShapes?: RouteShape[] | null
   transitStops?: TransitStop[] | null
+  neighbourhoodBoundaries?: unknown | null
 }
 
 function scoreColor(score: number): string {
@@ -20,7 +21,7 @@ function scoreOpacity(score: number, maxScore: number): number {
   return 0.25 + 0.35 * (score / maxScore)
 }
 
-export default function HeatMap({ points, routeShapes, transitStops }: Props) {
+export default function HeatMap({ points, routeShapes, transitStops, neighbourhoodBoundaries }: Props) {
   const center: [number, number] = [49.168, -121.951]
   const maxScore = Math.max(...points.map((p) => p.score), 1)
 
@@ -78,6 +79,25 @@ export default function HeatMap({ points, routeShapes, transitStops }: Props) {
                     </Polyline>
                   ))}
                 </LayerGroup>
+              </LayersControl.Overlay>
+            )}
+            {neighbourhoodBoundaries != null && (
+              <LayersControl.Overlay checked name="Neighbourhoods">
+                <GeoJSON
+                  data={neighbourhoodBoundaries as any}
+                  style={() => ({
+                    color: '#475569',
+                    weight: 2,
+                    fillOpacity: 0,
+                    dashArray: '4 4',
+                  })}
+                  onEachFeature={(feature: any, layer: any) => {
+                    const name = feature?.properties?.NAME
+                    if (name) {
+                      layer.bindTooltip(name, { sticky: true, className: 'text-xs' })
+                    }
+                  }}
+                />
               </LayersControl.Overlay>
             )}
           </LayersControl>

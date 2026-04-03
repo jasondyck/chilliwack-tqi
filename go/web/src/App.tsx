@@ -71,7 +71,7 @@ function Dashboard() {
         <TimeProfile data={data.tqi.TimeProfile} da={data.detailed_analysis} />
         {data.ptal && <PTALChart ptal={data.ptal} />}
         {data.grid_scores && (
-          <HeatMap points={data.grid_scores} routeShapes={data.route_shapes} transitStops={data.transit_stops} />
+          <HeatMap points={data.grid_scores} routeShapes={data.route_shapes} transitStops={data.transit_stops} neighbourhoodBoundaries={data.neighbourhood_boundaries} />
         )}
         {data.detailed_analysis?.top_origins && <TopOrigins origins={data.detailed_analysis.top_origins} />}
         {data.amenities && <AmenityTable amenities={data.amenities} />}
