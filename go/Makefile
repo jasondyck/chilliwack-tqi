@@ -6,7 +6,7 @@ build-web:
 
 # Build the Go CLI binary
 build:
-	go build -o bin/tqi ./cmd/tqi/
+	go build -tags embed_frontend -o bin/tqi ./cmd/tqi/
 
 # Run the API server in dev mode
 dev-api: build
