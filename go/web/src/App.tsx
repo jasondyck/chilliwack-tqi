@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { usePipelineResults } from './hooks/useResults'
 import Hero from './components/Hero'
 import ScoreCards from './components/ScoreCards'
+import NeighbourhoodTable from './components/NeighbourhoodTable'
 import Narrative from './components/Narrative'
 import ScoreBreakdown from './components/ScoreBreakdown'
 import WalkScoreTable from './components/WalkScoreTable'
@@ -58,6 +59,7 @@ function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-10 space-y-8">
         <Hero tqi={data.tqi} category={data.walkscore_category} desc={data.walkscore_desc} gridPoints={data.grid_points} nStops={data.n_stops} />
         <ScoreCards tqi={data.tqi} />
+        {data.neighbourhood_scores && <NeighbourhoodTable scores={data.neighbourhood_scores} />}
         {data.narrative && <Narrative paragraphs={data.narrative} />}
         <ScoreBreakdown tqi={data.tqi} />
         <WalkScoreTable currentTQI={data.tqi.TQI} />
