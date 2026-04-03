@@ -26,6 +26,12 @@ output/
 # Claude Code local config
 .claude/
 
+# Cursor
+.cursor/
+
+# Superpowers
+.superpowers/
+
 # Stitch exports
 stitch_export/
 stitch_*.zip
@@ -42,3 +48,14 @@ test-results/
 go/web/node_modules/
 go/tqi
 go/bin/
+go/data/
+go/debug
+
+# Benchmarks
+bench/
+
+# E2E screenshots
+e2e/screenshots/
+
+# Neighbourhood boundary data
+data/neighbourhoods.geojson
