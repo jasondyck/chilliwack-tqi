@@ -436,57 +436,23 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 			nbBoundaries = rawGeoJSON
 			assignments := neighbourhood.AssignPoints(nbs, points)
 
-			// Compute per-origin coverage, speed, and TQI using the real formula.
-			n := len(points)
-			gridTQIVals := make([]float64, n)
-			gridCov := make([]float64, n)
-			gridSpd := make([]float64, n)
-			for i := 0; i < n; i++ {
-				if i >= len(metrics.Reachability) {
-					continue
-				}
-				var reachSum float64
-				var reachCount int
-				var tsrSum float64
-				var tsrCount int
-				for j := 0; j < len(metrics.Reachability[i]); j++ {
-					if i == j {
-						continue
-					}
-					if !scoring.IsValidPair(metrics.DistancesKM[i][j]) {
-						continue
-					}
-					reachSum += metrics.Reachability[i][j]
-					reachCount++
-					tsr := scoring.ComputeTSR(metrics.DistancesKM[i][j], metrics.MeanTravelTime[i][j])
-					if tsr > 0 {
-						tsrSum += tsr
-						tsrCount++
-					}
-				}
-				if reachCount > 0 {
-					gridCov[i] = (reachSum / float64(reachCount)) * 100.0
-				}
-				if tsrCount > 0 {
-					meanTSR := tsrSum / float64(tsrCount)
-					gridSpd[i] = (meanTSR - config.TSRWalk) / (config.TSRCar - config.TSRWalk) * 100.0
-					if gridSpd[i] < 0 {
-						gridSpd[i] = 0
-					}
-					if gridSpd[i] > 100 {
-						gridSpd[i] = 100
-					}
-				}
-				gridTQIVals[i] = 0.5*gridCov[i] + 0.5*gridSpd[i]
+			// Use grid scores (per-origin reachability * 100) for neighbourhood
+			// weighting. These are the same values shown on the heat map.
+			gridTQIVals := make([]float64, len(gridScores))
+			gridCov := make([]float64, len(gridScores))
+			gridSpd := make([]float64, len(gridScores))
+			for i, gs := range gridScores {
+				gridTQIVals[i] = gs.Score
+				gridCov[i] = gs.Score // grid score IS coverage (reachability)
+				gridSpd[i] = gs.Score // use same metric for consistency
 			}
 
-			var wTQI, wCov, wSpd float64
-			nbScores, wTQI, wCov, wSpd = neighbourhood.ComputeScores(nbs, assignments, gridTQIVals, gridCov, gridSpd)
+			var wTQI float64
+			nbScores, wTQI, _, _ = neighbourhood.ComputeScores(nbs, assignments, gridTQIVals, gridCov, gridSpd)
 
-			// Replace uniform scores with population-weighted scores
+			// Replace uniform TQI with population-weighted value.
+			// Coverage and speed sub-scores stay as city-wide aggregates.
 			tqi.TQI = wTQI
-			tqi.CoverageScore = wCov
-			tqi.SpeedScore = wSpd
 			fmt.Printf("Population-weighted TQI: %.2f (from %d neighbourhoods)\n", wTQI, len(nbScores))
 		}
 	}

@@ -28,9 +28,7 @@ export default function NeighbourhoodTable({ scores }: Props) {
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Neighbourhood</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600 min-w-[160px]">Population</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600">TQI</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600">Coverage</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600">Speed</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-400">Points</th>
+                <th className="text-right px-4 py-3 font-semibold text-slate-400">Grid Points</th>
               </tr>
             </thead>
             <tbody>
@@ -49,12 +47,6 @@ export default function NeighbourhoodTable({ scores }: Props) {
                     </td>
                     <td className={`px-4 py-3 text-right font-bold tabular-nums ${tqiColor(s.tqi)}`}>
                       {s.tqi.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-700">
-                      {s.coverage_score.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-700">
-                      {s.speed_score.toFixed(1)}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-400">
                       {s.grid_point_count.toLocaleString()}
