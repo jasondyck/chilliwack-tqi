@@ -17,6 +17,7 @@ import (
 	"github.com/jasondyck/chwk-tqi/internal/grid"
 	"github.com/jasondyck/chwk-tqi/internal/gtfs"
 	"github.com/jasondyck/chwk-tqi/internal/isochrone"
+	"github.com/jasondyck/chwk-tqi/internal/neighbourhood"
 	"github.com/jasondyck/chwk-tqi/internal/raptor"
 	"github.com/jasondyck/chwk-tqi/internal/scoring"
 	"github.com/jasondyck/chwk-tqi/web"
@@ -422,6 +423,41 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		}
 	}
 
+	// Neighbourhood-level scoring with population weighting.
+	nbPath := filepath.Join("data", "neighbourhoods.geojson")
+	var nbScores []neighbourhood.Score
+	var nbBoundaries json.RawMessage
+	if _, err := os.Stat(nbPath); err == nil {
+		fmt.Println("Computing neighbourhood scores...")
+		nbs, rawGeoJSON, err := neighbourhood.LoadBoundaries(nbPath)
+		if err != nil {
+			log.Printf("neighbourhood boundaries: %v", err)
+		} else {
+			nbBoundaries = rawGeoJSON
+			assignments := neighbourhood.AssignPoints(nbs, points)
+
+			gridTQIVals := make([]float64, len(gridScores))
+			for i, gs := range gridScores {
+				gridTQIVals[i] = gs.Score
+			}
+			gridCov := make([]float64, len(points))
+			gridSpd := make([]float64, len(points))
+			for i := range gridCov {
+				gridCov[i] = tqi.CoverageScore
+				gridSpd[i] = tqi.SpeedScore
+			}
+
+			var wTQI, wCov, wSpd float64
+			nbScores, wTQI, wCov, wSpd = neighbourhood.ComputeScores(nbs, assignments, gridTQIVals, gridCov, gridSpd)
+
+			// Replace uniform scores with population-weighted scores
+			tqi.TQI = wTQI
+			tqi.CoverageScore = wCov
+			tqi.SpeedScore = wSpd
+			fmt.Printf("Population-weighted TQI: %.2f (from %d neighbourhoods)\n", wTQI, len(nbScores))
+		}
+	}
+
 	// Generate narrative analysis text.
 	wsCategory := config.WalkScoreCategory(tqi.TQI)
 	wsDesc := config.WalkScoreDescription(tqi.TQI)
@@ -441,7 +477,9 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		WalkScoreCategory:  wsCategory,
 		WalkScoreDesc:      wsDesc,
 		DetailedAnalysis:   detailed,
-		Isochrones:         isoResults,
+		Isochrones:              isoResults,
+		NeighbourhoodScores:     nbScores,
+		NeighbourhoodBoundaries: nbBoundaries,
 	}
 
 	if eqResult != nil {
