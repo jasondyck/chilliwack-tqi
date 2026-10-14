@@ -32,6 +32,16 @@ export default function Footer({ gridPoints, stops, meta }: Props) {
           {feedStart && feedEnd && ` GTFS feed valid ${feedStart} – ${feedEnd}.`}
           {gridPoints > 0 && ` ${gridPoints.toLocaleString()} grid points, ${stops} stops analyzed.`}
           {' '}Built with Go + React + Recharts + Leaflet.
+          <span className="block mt-1 not-italic">
+            Schedule data: BC Transit. Contains information licensed under the{' '}
+            <a
+              className="underline hover:text-slate-700"
+              href="https://opendata.chilliwack.com/Chilliwack_Open_Data_License/Open_Data_License-City_of_Chilliwack.pdf"
+            >
+              Open Data License – City of Chilliwack
+            </a>
+            .
+          </span>
         </div>
       </div>
     </footer>

@@ -67,7 +67,8 @@ func ComputeDetailedAnalysis(
 	// --- Coverage: origins within 800 m of any stop ---
 	const serviceRadiusKM = 0.8
 	nWithService := 0
-	for _, pt := range points {
+	served := make([]bool, nOrigins)
+	for i, pt := range points {
 		near := false
 		for k := 0; k < len(stopLats); k++ {
 			if haversineKM(pt.Lat, pt.Lon, stopLats[k], stopLons[k]) <= serviceRadiusKM {
@@ -76,6 +77,7 @@ func ComputeDetailedAnalysis(
 			}
 		}
 		if near {
+			served[i] = true
 			nWithService++
 		}
 	}
@@ -234,8 +236,16 @@ func ComputeDetailedAnalysis(
 		}
 	}
 
-	// --- Reliability histogram (25 bins) ---
-	reliHist := buildReliabilityHistogram(tqi.ReliabilityPerOrigin, 25)
+	// --- Reliability histogram ---
+	// Origins with no stop in walking range have no trips, so their CV is a
+	// placeholder 0, not "perfectly reliable". Leave them out.
+	var servedCV []float64
+	for i, cv := range tqi.ReliabilityPerOrigin {
+		if i < len(served) && served[i] {
+			servedCV = append(servedCV, cv)
+		}
+	}
+	reliHist := buildReliabilityHistogram(servedCV, reliabilityBinWidth)
 
 	// --- PTAL distribution ---
 	ptalDist := map[string]int{}
@@ -277,10 +287,13 @@ func ComputeDetailedAnalysis(
 	}
 }
 
-// buildReliabilityHistogram bins reliability values into nBins equal-width bins
-// spanning [0, max].
-func buildReliabilityHistogram(values []float64, nBins int) HistogramData {
-	if len(values) == 0 || nBins <= 0 {
+// reliabilityBinWidth is the CV histogram bin width.
+const reliabilityBinWidth = 0.01
+
+// buildReliabilityHistogram bins values into fixed-width bins from 0 up to the
+// first bin edge at or above the maximum, so labels are clean round numbers.
+func buildReliabilityHistogram(values []float64, binWidth float64) HistogramData {
+	if len(values) == 0 || binWidth <= 0 {
 		return HistogramData{Labels: []string{}, Counts: []int{}}
 	}
 
@@ -290,30 +303,26 @@ func buildReliabilityHistogram(values []float64, nBins int) HistogramData {
 			maxVal = v
 		}
 	}
-	if maxVal == 0 {
-		// All zeros — single bin.
-		return HistogramData{
-			Labels: []string{"0.00-0.00"},
-			Counts: []int{len(values)},
-		}
+	nBins := int(math.Ceil(maxVal/binWidth - 1e-9))
+	if nBins < 1 {
+		nBins = 1
 	}
 
-	binWidth := maxVal / float64(nBins)
 	counts := make([]int, nBins)
 	for _, v := range values {
 		bin := int(v / binWidth)
 		if bin >= nBins {
 			bin = nBins - 1
 		}
+		if bin < 0 {
+			bin = 0
+		}
 		counts[bin]++
 	}
 
 	labels := make([]string, nBins)
-	for i := 0; i < nBins; i++ {
-		lo := float64(i) * binWidth
-		hi := float64(i+1) * binWidth
-		labels[i] = fmt.Sprintf("%.2f-%.2f", lo, hi)
+	for i := range labels {
+		labels[i] = fmt.Sprintf("%.2f-%.2f", float64(i)*binWidth, float64(i+1)*binWidth)
 	}
-
 	return HistogramData{Labels: labels, Counts: counts}
 }

@@ -143,3 +143,26 @@ func TestComputeDetailedAnalysis(t *testing.T) {
 		t.Errorf("NValidPairs = %d, want 6", da.NValidPairs)
 	}
 }
+
+func TestBuildReliabilityHistogramFixedBins(t *testing.T) {
+	h := buildReliabilityHistogram([]float64{0.005, 0.095, 0.10, 0.234}, 0.01)
+	if len(h.Labels) != 24 {
+		t.Fatalf("got %d bins, want 24", len(h.Labels))
+	}
+	for i, want := range map[int]string{0: "0.00-0.01", 9: "0.09-0.10", 23: "0.23-0.24"} {
+		if h.Labels[i] != want {
+			t.Errorf("label[%d] = %q, want %q", i, h.Labels[i], want)
+		}
+	}
+	for _, i := range []int{0, 9, 10, 23} {
+		if h.Counts[i] != 1 {
+			t.Errorf("count[%d] = %d, want 1", i, h.Counts[i])
+		}
+	}
+}
+
+func TestBuildReliabilityHistogramEmpty(t *testing.T) {
+	if h := buildReliabilityHistogram(nil, 0.01); len(h.Counts) != 0 {
+		t.Errorf("want no bins, got %d", len(h.Counts))
+	}
+}

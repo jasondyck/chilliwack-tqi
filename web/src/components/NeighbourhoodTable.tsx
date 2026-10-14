@@ -5,7 +5,7 @@ interface Props {
 }
 
 function tqiColor(tqi: number): string {
-  if (tqi >= 5) return 'text-emerald-600'
+  if (tqi >= 5) return 'text-emerald-700'
   if (tqi >= 2.5) return 'text-amber-700'
   return 'text-red-600'
 }

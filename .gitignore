@@ -41,5 +41,3 @@ bin/
 tqi-server
 web/dist/
 
-# Neighbourhood boundary data
-data/neighbourhoods.geojson
