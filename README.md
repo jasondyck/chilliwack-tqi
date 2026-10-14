@@ -84,4 +84,4 @@ cd web && npm run e2e   # Playwright smoke + accessibility tests
 
 ## License
 
-MIT
+[MIT](LICENSE)
