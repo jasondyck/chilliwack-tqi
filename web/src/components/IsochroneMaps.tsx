@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, GeoJSON, LayersControl } from 'react-leaflet'
+import { MapContainer, GeoJSON, LayersControl } from 'react-leaflet'
+import BaseMap from './BaseMap'
 import type { IsochroneResult } from '../lib/types'
 import 'leaflet/dist/leaflet.css'
 
@@ -36,10 +37,7 @@ export default function IsochroneMaps({ isochrones }: Props) {
             </div>
             <div style={{ height: 400 }}>
               <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
-                <TileLayer
-                  attribution='&copy; CARTO'
-                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                />
+                <BaseMap />
                 <LayersControl position="topright">
                   {iso.geojson?.features?.map((feature, i) => {
                     const bandName = feature.properties?.band ?? ''

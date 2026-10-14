@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	_ "time/tzdata" // embed zone data so localNow works without system tzdata
 
 	"github.com/spf13/cobra"
 
@@ -262,7 +263,7 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 			return nil, fmt.Errorf("invalid --date %q: %w", opts.serviceDate, err)
 		}
 	} else {
-		serviceDate, err = gtfs.SelectServiceDate(feed, opts.routes, time.Now())
+		serviceDate, err = gtfs.SelectServiceDate(feed, opts.routes, localNow())
 		if err != nil {
 			return nil, fmt.Errorf("select service date: %w", err)
 		}
@@ -568,6 +569,15 @@ func generateNarrative(city string, tqi *scoring.TQIResult, sys *scoring.SystemL
 			sys.NRoutes, sys.MedianSystemHeadway, sys.BestGrade, sys.WorstGrade, sys.PctLOSDOrWorse))
 	}
 	return paras
+}
+
+// localNow is the current time in the transit agency's time zone, so a run
+// late in the Pacific evening (already tomorrow in UTC) picks today's service.
+func localNow() time.Time {
+	if loc, err := time.LoadLocation("America/Vancouver"); err == nil {
+		return time.Now().In(loc)
+	}
+	return time.Now()
 }
 
 func titleCase(s string) string {

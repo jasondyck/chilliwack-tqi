@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, GeoJSON, LayersControl } from 'react-leaflet'
+import { MapContainer, GeoJSON, LayersControl } from 'react-leaflet'
+import BaseMap from './BaseMap'
 import type { Feature, Geometry } from 'geojson'
 import type { Layer } from 'leaflet'
 import type { EquityProperties, EquityResult } from '../lib/types'
@@ -33,10 +34,7 @@ export default function EquityMap({ equity }: Props) {
       <p className="text-xs text-slate-500 mb-3">Cross-referenced with census income data by Dissemination Area</p>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" style={{ height: 500 }}>
         <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
-          <TileLayer
-            attribution='&copy; CARTO'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          />
+          <BaseMap />
           <LayersControl position="topright">
             <LayersControl.Overlay checked name="TQI by DA">
               <GeoJSON
