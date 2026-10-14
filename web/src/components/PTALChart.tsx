@@ -1,5 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import type { PTALResult } from '../lib/types'
+import { niceAxis } from '../lib/format'
 
 interface Props {
   ptal: PTALResult
@@ -27,6 +28,7 @@ export default function PTALChart({ ptal }: Props) {
   }
 
   const data = gradeOrder.map((g) => ({ grade: g, count: counts[g] }))
+  const yAxis = niceAxis(Math.max(...data.map((d) => d.count)))
 
   return (
     <section>
@@ -39,7 +41,7 @@ export default function PTALChart({ ptal }: Props) {
           <BarChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="grade" tick={{ fill: '#64748b', fontSize: 13 }} />
-            <YAxis tick={{ fill: '#64748b', fontSize: 13 }} />
+            <YAxis domain={yAxis.domain} ticks={yAxis.ticks} allowDecimals={false} tick={{ fill: '#64748b', fontSize: 13 }} label={{ value: 'Grid Points', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#94a3b8' }} />
             <Tooltip
               contentStyle={{ borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
               formatter={(v) => [Number(v), 'Grid Points']}

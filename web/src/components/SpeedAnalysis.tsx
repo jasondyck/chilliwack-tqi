@@ -1,5 +1,6 @@
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts'
 import type { DetailedAnalysis } from '../lib/types'
+import { niceAxis } from '../lib/format'
 
 interface Props {
   da: DetailedAnalysis
@@ -22,6 +23,7 @@ export default function SpeedAnalysis({ da }: Props) {
     { name: 'P75', value: da.travel_time_percentiles?.p75 ?? 0, fill: '#f97316' },
     { name: 'P90', value: da.travel_time_percentiles?.p90 ?? 0, fill: '#ef4444' },
   ]
+  const ttAxis = niceAxis(Math.max(...travelTimeData.map((d) => d.value)))
 
   const metricCards = [
     { label: 'Mean TSR (km/h)', value: da.mean_tsr.toFixed(1), accent: 'border-l-4 border-l-amber-500' },
@@ -86,12 +88,14 @@ export default function SpeedAnalysis({ da }: Props) {
           <BarChart data={travelTimeData} margin={{ top: 20, right: 20, bottom: 5, left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} />
-            <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+            <YAxis domain={ttAxis.domain} ticks={ttAxis.ticks} tick={{ fontSize: 12, fill: '#64748b' }} />
             <Tooltip
               contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, color: 'white', padding: '8px 12px', fontSize: 12 }}
               labelStyle={{ color: '#94a3b8' }}
+              formatter={(v) => [`${Number(v).toFixed(0)} min`, 'Travel time']}
             />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]} label={{ position: 'top', fontSize: 11, fontWeight: 600, fill: '#334155' }}>
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              <LabelList dataKey="value" position="top" fontSize={11} fontWeight={600} fill="#334155" formatter={(v) => `${Number(v).toFixed(0)} min`} />
               {travelTimeData.map((d, i) => (
                 <Cell key={i} fill={d.fill} />
               ))}

@@ -1,5 +1,6 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts'
 import type { TQIResult } from '../lib/types'
+import { niceAxis } from '../lib/format'
 
 interface Props {
   tqi: TQIResult
@@ -12,7 +13,8 @@ export default function ScoreBreakdown({ tqi }: Props) {
     { name: 'Overall TQI', value: tqi.TQI, color: '#f59e0b' },
   ]
 
-  const maxVal = Math.max(...data.map((d) => d.value), 10)
+  // Fit the axis to the data (scores are 0–100 but currently far lower).
+  const yAxis = niceAxis(Math.max(...data.map((d) => d.value)) * 1.1)
 
   return (
     <section>
@@ -25,13 +27,14 @@ export default function ScoreBreakdown({ tqi }: Props) {
           <BarChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 13 }} />
-            <YAxis domain={[0, Math.ceil(maxVal * 1.15)]} tick={{ fill: '#64748b', fontSize: 13 }} />
+            <YAxis domain={yAxis.domain} ticks={yAxis.ticks} tick={{ fill: '#64748b', fontSize: 13 }} label={{ value: 'Score (0–100)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#94a3b8' }} />
             <Tooltip
               contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, color: 'white', padding: '8px 12px', fontSize: 12 }}
               labelStyle={{ color: '#94a3b8' }}
               formatter={(v) => [Number(v).toFixed(1), 'Score']}
             />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80} label={{ position: 'top', fontSize: 11, fontWeight: 600, fill: '#334155' }}>
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80}>
+              <LabelList dataKey="value" position="top" fontSize={11} fontWeight={600} fill="#334155" formatter={(v) => Number(v).toFixed(1)} />
               {data.map((d, i) => (
                 <Cell key={i} fill={d.color} />
               ))}

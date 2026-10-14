@@ -1,5 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { DetailedAnalysis } from '../lib/types'
+import { niceAxis } from '../lib/format'
 
 interface Props {
   da: DetailedAnalysis
@@ -13,6 +14,7 @@ export default function ReliabilityHistogram({ da }: Props) {
     label,
     count: hist.counts[i],
   }))
+  const yAxis = niceAxis(Math.max(...chartData.map((d) => d.count)))
 
   return (
     <section>
@@ -21,7 +23,10 @@ export default function ReliabilityHistogram({ da }: Props) {
         <div className="flex-1 border-t border-slate-200" />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-        <p className="text-xs text-slate-500 mb-3">Lower CV = more predictable trip times</p>
+        <p className="text-xs text-slate-500 mb-3">
+          Lower CV = more predictable trip times. Covers the {da.n_origins_with_service.toLocaleString()} grid points within walking distance of a stop;
+          the {da.n_transit_desert_origins.toLocaleString()} without service have no trips to measure.
+        </p>
         <ResponsiveContainer width="100%" height={256}>
           <BarChart data={chartData} margin={{ top: 10, right: 20, bottom: 20, left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -31,7 +36,7 @@ export default function ReliabilityHistogram({ da }: Props) {
               interval={Math.max(0, Math.floor(chartData.length / 10) - 1)}
               label={{ value: 'Coefficient of Variation', position: 'insideBottom', offset: -10, fontSize: 11, fill: '#94a3b8' }}
             />
-            <YAxis tick={{ fontSize: 11, fill: '#64748b' }} label={{ value: 'Grid Points', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#94a3b8' }} />
+            <YAxis domain={yAxis.domain} ticks={yAxis.ticks} allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} label={{ value: 'Grid Points', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#94a3b8' }} />
             <Tooltip
               contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, color: 'white', padding: '8px 12px', fontSize: 12 }}
               labelStyle={{ color: '#94a3b8' }}
