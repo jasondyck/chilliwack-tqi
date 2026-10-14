@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Muted OpenStreetMap basemap (see components/BaseMap.tsx). */
+.basemap-muted {
+  filter: grayscale(1) brightness(1.08) contrast(0.85);
+}

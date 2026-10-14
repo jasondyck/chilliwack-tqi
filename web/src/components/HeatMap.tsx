@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, CircleMarker, Polyline, LayersControl, LayerGroup, Tooltip, GeoJSON } from 'react-leaflet'
+import { MapContainer, CircleMarker, Polyline, LayersControl, LayerGroup, Tooltip, GeoJSON } from 'react-leaflet'
+import BaseMap from './BaseMap'
 import type { Feature, FeatureCollection, Geometry } from 'geojson'
 import type { Layer } from 'leaflet'
 import type { GridScorePoint, NeighbourhoodProperties, RouteShape, TransitStop } from '../lib/types'
@@ -35,10 +36,7 @@ export default function HeatMap({ points, routeShapes, transitStops, neighbourho
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" style={{ height: 500 }}>
         <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true} preferCanvas>
-          <TileLayer
-            attribution='&copy; <a href="https://carto.com">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          />
+          <BaseMap />
           <LayersControl position="topright">
             <LayersControl.Overlay checked name="TQI Grid">
               <LayerGroup>
