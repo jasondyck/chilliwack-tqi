@@ -1,5 +1,6 @@
 import type { ResultsMeta, TQIResult } from '../lib/types'
 import { formatGTFSDate } from '../lib/format'
+import { walkScoreBand } from '../lib/walkscore'
 
 interface Props {
   tqi: TQIResult
@@ -8,16 +9,11 @@ interface Props {
   meta?: ResultsMeta
 }
 
-function categoryColor(cat: string): string {
-  if (cat.includes('Paradise') || cat.includes('Excellent')) return 'bg-emerald-100 text-emerald-700'
-  if (cat.includes('Good')) return 'bg-blue-100 text-blue-700'
-  if (cat.includes('Some')) return 'bg-yellow-100 text-yellow-700'
-  return 'bg-red-100 text-red-700'
-}
-
+// barGradient follows the Walk Score bands in lib/walkscore.ts.
 function barGradient(score: number): string {
   if (score >= 70) return 'from-emerald-400 to-emerald-500'
-  if (score >= 40) return 'from-amber-400 to-amber-500'
+  if (score >= 50) return 'from-blue-400 to-blue-500'
+  if (score >= 25) return 'from-yellow-400 to-yellow-500'
   return 'from-red-400 to-red-500'
 }
 
@@ -54,7 +50,7 @@ export default function Hero({ tqi, category, populationWeighted, meta }: Props)
             style={{ width: `${tqi.TQI}%` }}
           />
         </div>
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${categoryColor(category)}`}>
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${walkScoreBand(tqi.TQI).badge}`}>
           {category}
         </span>
         {serviceDate && (
