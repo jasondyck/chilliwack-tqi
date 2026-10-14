@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -23,11 +24,28 @@ import (
 	"github.com/jasondyck/chilliwack-tqi/web"
 )
 
+// dataDir is the root data directory, set by the --data-dir persistent flag.
+var dataDir string
+
+// chilliwackOpts returns pipeline options for the default Chilliwack analysis.
+func chilliwackOpts() pipelineOpts {
+	return pipelineOpts{
+		gtfsURL:      config.GTFSURL,
+		dataDir:      dataDir,
+		bboxSW:       config.BBoxSW,
+		bboxNE:       config.BBoxNE,
+		routes:       config.ChilliwackRoutes,
+		boundaryPath: filepath.Join(dataDir, config.BoundaryGeoJSON),
+		cityName:     "chilliwack",
+	}
+}
+
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "tqi",
 		Short: "Transit Quality Index — measure how well transit connects a city",
 	}
+	rootCmd.PersistentFlags().StringVar(&dataDir, "data-dir", "data", "Directory holding GTFS downloads and curated input data")
 
 	rootCmd.AddCommand(
 		newServeCmd(),
@@ -60,19 +78,12 @@ func newServeCmd() *cobra.Command {
 
 			if !skipRun {
 				fmt.Println("Running analysis pipeline before starting server...")
-				results, err := runPipeline(pipelineOpts{
-					gtfsURL:      config.GTFSURL,
-					dataDir:      "data",
-					bboxSW:       config.BBoxSW,
-					bboxNE:       config.BBoxNE,
-					routes:       config.ChilliwackRoutes,
-					boundaryPath: config.BoundaryGeoJSON,
-					noDownload:   noDownload,
-					noCache:      noCache,
-					workers:      workers,
-					outputDir:    "output",
-					cityName:     "chilliwack",
-				})
+				opts := chilliwackOpts()
+				opts.noDownload = noDownload
+				opts.noCache = noCache
+				opts.workers = workers
+				opts.outputDir = "output"
+				results, err := runPipeline(opts)
 				if err != nil {
 					return fmt.Errorf("pipeline failed: %w", err)
 				}
@@ -86,7 +97,7 @@ func newServeCmd() *cobra.Command {
 	}
 	cmd.Flags().Int("port", 8080, "Port to listen on")
 	cmd.Flags().Bool("no-download", false, "Skip GTFS download")
-	cmd.Flags().Bool("no-cache", false, "Ignore cached matrix")
+	cmd.Flags().Bool("no-cache", false, "Neither read nor write the OD matrix cache")
 	cmd.Flags().Int("workers", 0, "Number of parallel workers (0 = auto)")
 	cmd.Flags().Bool("skip-run", false, "Start server without running pipeline (no results until POST /api/run)")
 	return cmd
@@ -103,27 +114,22 @@ func newRunCmd() *cobra.Command {
 			noCache, _ := cmd.Flags().GetBool("no-cache")
 			workers, _ := cmd.Flags().GetInt("workers")
 			outputDir, _ := cmd.Flags().GetString("output-dir")
+			date, _ := cmd.Flags().GetString("date")
 
-			_, err := runPipeline(pipelineOpts{
-				gtfsURL:      config.GTFSURL,
-				dataDir:      "data",
-				bboxSW:       config.BBoxSW,
-				bboxNE:       config.BBoxNE,
-				routes:       config.ChilliwackRoutes,
-				boundaryPath: config.BoundaryGeoJSON,
-				noDownload:   noDownload,
-				noCache:      noCache,
-				workers:      workers,
-				outputDir:    outputDir,
-				cityName:     "chilliwack",
-			})
+			opts := chilliwackOpts()
+			opts.noDownload = noDownload
+			opts.noCache = noCache
+			opts.workers = workers
+			opts.outputDir = outputDir
+			opts.serviceDate = date
+			_, err := runPipeline(opts)
 			return err
 		},
 	}
 	cmd.Flags().Bool("no-download", false, "Skip GTFS download")
-	cmd.Flags().Bool("no-cache", false, "Ignore cached matrix")
+	cmd.Flags().Bool("no-cache", false, "Neither read nor write the OD matrix cache")
 	cmd.Flags().Int("workers", 0, "Number of parallel workers (0 = auto)")
-	cmd.Flags().Bool("equity", false, "Include census equity overlay")
+	cmd.Flags().String("date", "", "Service date to analyse as YYYYMMDD (default: first typical weekday from today)")
 	cmd.Flags().String("output-dir", "output", "Output directory")
 	return cmd
 }
@@ -135,7 +141,7 @@ func newDownloadCmd() *cobra.Command {
 		Use:   "download",
 		Short: "Download GTFS data from BC Transit",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			destDir := filepath.Join("data", "gtfs")
+			destDir := filepath.Join(dataDir, "gtfs")
 			fmt.Printf("Downloading GTFS from %s to %s\n", config.GTFSURL, destDir)
 			hash, err := gtfs.DownloadGTFS(config.GTFSURL, destDir)
 			if err != nil {
@@ -174,7 +180,7 @@ func newCompareCmd() *cobra.Command {
 				fmt.Printf("\n══════ %s ══════\n", strings.ToUpper(name))
 				_, err := runPipeline(pipelineOpts{
 					gtfsURL:      cc.URL,
-					dataDir:      filepath.Join("data", name),
+					dataDir:      filepath.Join(dataDir, name),
 					bboxSW:       cc.BBoxSW,
 					bboxNE:       cc.BBoxNE,
 					routes:       cc.Routes,
@@ -212,10 +218,16 @@ type pipelineOpts struct {
 	workers      int
 	outputDir    string
 	cityName     string
+	serviceDate  string // YYYYMMDD; empty selects automatically
 }
 
 func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 	gtfsDir := filepath.Join(opts.dataDir, "gtfs")
+	if opts.boundaryPath != "" {
+		if _, err := os.Stat(opts.boundaryPath); err != nil {
+			return nil, fmt.Errorf("municipal boundary: %w", err)
+		}
+	}
 
 	// 1. Optionally download GTFS.
 	if !opts.noDownload {
@@ -243,7 +255,20 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 
 	// 4. Filter feed.
 	fmt.Println("Filtering feed...")
-	filtered, err := gtfs.FilterFeed(feed, opts.routes, "")
+	var serviceDate time.Time
+	if opts.serviceDate != "" {
+		serviceDate, err = time.Parse("20060102", opts.serviceDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid --date %q: %w", opts.serviceDate, err)
+		}
+	} else {
+		serviceDate, err = gtfs.SelectServiceDate(feed, opts.routes, time.Now())
+		if err != nil {
+			return nil, fmt.Errorf("select service date: %w", err)
+		}
+	}
+	fmt.Printf("Service date: %s (%s)\n", serviceDate.Format("2006-01-02"), serviceDate.Weekday())
+	filtered, err := gtfs.FilterFeed(feed, opts.routes, serviceDate)
 	if err != nil {
 		return nil, fmt.Errorf("filter feed: %w", err)
 	}
@@ -275,7 +300,7 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 
 	// 8. Compute OD matrix (check cache first).
 	var metrics *scoring.ODMetrics
-	cacheDir := opts.outputDir
+	cacheDir := filepath.Join(opts.dataDir, "cache")
 
 	if !opts.noCache && feedHash != "" {
 		fmt.Println("Checking matrix cache...")
@@ -298,7 +323,7 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		fmt.Println() // newline after progress
 
 		// Save to cache.
-		if feedHash != "" {
+		if !opts.noCache && feedHash != "" {
 			if err := os.MkdirAll(cacheDir, 0755); err == nil {
 				if err := raptor.SaveCache(cacheDir, feedHash, len(points), metrics); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: could not save cache: %v\n", err)
@@ -404,8 +429,8 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 
 	// 12c. Equity overlay (conditional — requires census data files).
 	var eqResult *equity.Result
-	boundaryPath := filepath.Join("data", "census", "da_boundaries.geojson")
-	incomePath := filepath.Join("data", "census", "da_income.json")
+	boundaryPath := filepath.Join(opts.dataDir, "census", "da_boundaries.geojson")
+	incomePath := filepath.Join(opts.dataDir, "census", "da_income.json")
 	if _, err := os.Stat(boundaryPath); err == nil {
 		if _, err := os.Stat(incomePath); err == nil {
 			fmt.Println("Computing equity overlay...")
@@ -424,7 +449,7 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 	}
 
 	// Neighbourhood-level scoring with population weighting.
-	nbPath := filepath.Join("data", "neighbourhoods.geojson")
+	nbPath := filepath.Join(opts.dataDir, "neighbourhoods.geojson")
 	var nbScores []neighbourhood.Score
 	var nbBoundaries json.RawMessage
 	if _, err := os.Stat(nbPath); err == nil {
@@ -457,6 +482,30 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 		}
 	}
 
+	// Amenity accessibility (optional curated input).
+	var amenities []scoring.AmenityResult
+	amenityPath := filepath.Join(opts.dataDir, "amenities.json")
+	if _, err := os.Stat(amenityPath); err == nil {
+		fmt.Println("Computing amenity accessibility...")
+		list, err := scoring.LoadAmenities(amenityPath)
+		if err != nil {
+			return nil, fmt.Errorf("load amenities: %w", err)
+		}
+		amenities = scoring.ComputeAmenityAccessibility(points, metrics.MeanTravelTime, metrics.DistancesKM, list)
+	}
+
+	meta := api.Meta{
+		City:        opts.cityName,
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		FeedHash:    feedHash,
+		ServiceDate: serviceDate.Format("20060102"),
+	}
+	if info, err := gtfs.LoadFeedInfo(gtfsDir); err == nil {
+		meta.FeedVersion = info.Version
+		meta.FeedStartDate = info.StartDate
+		meta.FeedEndDate = info.EndDate
+	}
+
 	// Generate narrative analysis text.
 	wsCategory := config.WalkScoreCategory(tqi.TQI)
 	wsDesc := config.WalkScoreDescription(tqi.TQI)
@@ -464,18 +513,20 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 	narrative := generateNarrative(opts.cityName, tqi, systemLOS, len(points), tt.NStops, wsCategory)
 
 	results := api.PipelineResults{
-		TQI:               tqi,
-		Metrics:            metrics,
-		RouteLOS:           routeLOS,
-		SystemLOS:          systemLOS,
-		PTAL:               ptal,
-		GridPoints:         len(points),
-		NStops:             tt.NStops,
-		GridScores:         gridScores,
-		Narrative:          narrative,
-		WalkScoreCategory:  wsCategory,
-		WalkScoreDesc:      wsDesc,
-		DetailedAnalysis:   detailed,
+		Meta:                    meta,
+		Amenities:               amenities,
+		TQI:                     tqi,
+		Metrics:                 metrics,
+		RouteLOS:                routeLOS,
+		SystemLOS:               systemLOS,
+		PTAL:                    ptal,
+		GridPoints:              len(points),
+		NStops:                  tt.NStops,
+		GridScores:              gridScores,
+		Narrative:               narrative,
+		WalkScoreCategory:       wsCategory,
+		WalkScoreDesc:           wsDesc,
+		DetailedAnalysis:        detailed,
 		Isochrones:              isoResults,
 		NeighbourhoodScores:     nbScores,
 		NeighbourhoodBoundaries: nbBoundaries,
@@ -506,8 +557,8 @@ func runPipeline(opts pipelineOpts) (*api.PipelineResults, error) {
 func generateNarrative(city string, tqi *scoring.TQIResult, sys *scoring.SystemLOSSummary, gridPts, nStops int, category string) []string {
 	paras := []string{
 		fmt.Sprintf("The Transit Quality Index for %s is %.1f out of 100, placing it in the \"%s\" category on the Walk Score transit scale.",
-			strings.Title(city), tqi.TQI, category),
-		fmt.Sprintf("Coverage scored %.1f — this measures what percentage of the city can be reached by transit from any given point. Speed scored %.1f — this captures how competitive transit travel times are compared to driving.",
+			titleCase(city), tqi.TQI, category),
+		fmt.Sprintf("Coverage scored %.1f — this measures what percentage of the city can be reached by transit from any given point. Speed scored %.1f — this captures how much faster transit is than walking the same trip.",
 			tqi.CoverageScore, tqi.SpeedScore),
 		fmt.Sprintf("The analysis evaluated %d grid points across the city with access to %d transit stops. Reliability (coefficient of variation) was %.4f, indicating %s in travel times across different departure windows.",
 			gridPts, nStops, tqi.ReliabilityCV, reliabilityDesc(tqi.ReliabilityCV)),
@@ -517,6 +568,13 @@ func generateNarrative(city string, tqi *scoring.TQIResult, sys *scoring.SystemL
 			sys.NRoutes, sys.MedianSystemHeadway, sys.BestGrade, sys.WorstGrade, sys.PctLOSDOrWorse))
 	}
 	return paras
+}
+
+func titleCase(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 func reliabilityDesc(cv float64) string {

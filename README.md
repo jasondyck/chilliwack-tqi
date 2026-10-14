@@ -1,77 +1,85 @@
 # Chilliwack Transit Quality Index (TQI)
 
-A data-driven analysis of public transit quality in Chilliwack, BC — scoring the city 0–100 based on how well buses connect people to destinations.
+A data-driven score (0–100) for how well public transit connects people to places in Chilliwack, BC.
 
-## What it does
+**Live dashboard:** https://jasondyck.github.io/chilliwack-tqi/ — refreshed weekly from BC Transit's latest published schedule.
 
-- Downloads BC Transit GTFS schedule data for the Fraser Valley
-- Generates a ~4,700 point analysis grid clipped to Chilliwack's municipal boundary
-- Runs ~300,000 RAPTOR pathfinding operations across 64 departure times (6 AM – 10 PM)
-- Computes a Transit Quality Index using coverage and speed metrics
-- Grades every route using TCQSM Level of Service (TCRP Report 165)
-- Computes PTAL accessibility scores (Transport for London methodology)
-- Measures access to essential amenities (hospital, grocery, schools)
-- Generates an HTML report with interactive maps, isochrones, and charts
+## How it works
+
+1. Downloads the BC Transit GTFS feed for the Fraser Valley region (operator 13).
+2. Picks a representative weekday from the feed. Every Mon–Fri is grouped by its set of active services, and the most common pattern wins, so statutory holidays and one-off service changes are skipped.
+3. Lays a 250 m grid (~4,700 points) over the municipal boundary.
+4. Runs RAPTOR transit routing from every point to every other point, at 64 departure times from 06:00 to 22:00.
+5. Scores the result:
+   - **TQI**: 50% coverage (share of trips transit can make at all) + 50% speed (how much faster than walking). Transit gets no credit where walking is faster.
+   - **TCQSM Level of Service**: an A–F grade per route by headway (TCRP Report 165).
+   - **PTAL**: Transport for London's Public Transport Accessibility Level.
+   - **Amenity access**: travel times to the hospital, grocery stores, schools and other key destinations.
+   - **Neighbourhood breakdown** and population-weighted score, when boundary data is present (see below).
+
+A full run takes a few seconds. See [docs/methodology.md](docs/methodology.md) for the methodology.
 
 ## Quick start
 
+Requires Go 1.25+ and Node 24+.
+
 ```bash
-uv sync --all-extras
-uv run tqi run              # full pipeline (downloads GTFS, computes, generates report)
-uv run tqi run --no-download  # re-run without re-downloading GTFS
+make serve           # build dashboard + CLI, run the analysis, serve at http://localhost:8080
 ```
 
-Open `output/report.html` in a browser.
-
-## CLI commands
+Or step by step:
 
 ```bash
-uv run tqi run [OPTIONS]       # full analysis pipeline
-  --download/--no-download     # download fresh GTFS data (default: yes)
-  --use-cache/--no-cache       # use cached travel time matrix (default: yes)
-  --parallel/--no-parallel     # parallelise RAPTOR runs (default: yes)
-  --workers N                  # number of parallel workers
-  --equity/--no-equity         # include census equity overlay
-  --output-dir PATH            # output directory
-
-uv run tqi download            # download GTFS data only
-
-uv run tqi compare             # compare TQI across BC Transit cities
-  --cities chilliwack,victoria,kelowna
+go run ./cmd/tqi run             # download GTFS, analyse, write output/tqi_results.json
+go run ./cmd/tqi run --no-download --date 20261020   # reuse feed, pin a service date
+go run ./cmd/tqi serve           # run analysis and serve API + dashboard
+go run ./cmd/tqi compare --cities chilliwack,victoria,kelowna
 ```
 
-## Output
-
-| File | Description |
-|------|-------------|
-| `output/report.html` | Full HTML report with all analysis |
-| `output/heatmap.html` | Interactive spatial heat map with route overlays |
-| `output/isochrone_*.html` | Isochrone maps from downtown exchange |
-| `output/tqi_results.json` | Machine-readable results |
-
-## Established frameworks used
-
-- **Walk Score Transit Score** — 0–100 interpretation scale (walkscore.com)
-- **TCQSM Level of Service** — route grading A–F by headway (TCRP Report 165, Transportation Research Board)
-- **PTAL** — Public Transport Accessibility Level (Transport for London methodology)
-- **RAPTOR** — Round-Based Public Transit Routing algorithm (Delling et al., 2012)
-
-## Data sources
-
-- **GTFS**: BC Transit, Operator 13 (Fraser Valley Region) — [bctransit.com/open-data](https://www.bctransit.com/open-data/)
-- **Municipal boundary**: City of Chilliwack Open Data — [chilliwack.com](https://www.chilliwack.com/main/page.cfm?id=2331)
-- **Census data** (optional): Statistics Canada 2021 Census, Dissemination Area level
-
-## Methodology
-
-See [transit-quality-index.md](transit-quality-index.md) for the full methodology design document.
-
-**TL;DR**: For every pair of points in the city, at every 15-minute interval throughout the day, find the fastest transit trip (RAPTOR algorithm). Compare transit speed against walking speed. The TQI is 50% coverage (what fraction of trips are possible) + 50% speed (how fast transit is vs walking). Trips where walking is faster than transit are excluded — transit only gets credit when it actually helps.
-
-## Running tests
+Frontend development, with the API server running on :8080:
 
 ```bash
-uv run pytest -v
+cd web && npm install && npm run dev
+```
+
+## Layout
+
+```
+cmd/tqi/          CLI entrypoint (run, serve, download, compare)
+internal/
+  gtfs/           feed download, parsing, service-date selection
+  grid/           analysis grid + boundary clipping
+  raptor/         RAPTOR engine and OD travel-time matrix
+  scoring/        TQI, TCQSM, PTAL, amenities, reliability, time profile
+  neighbourhood/  per-neighbourhood + population-weighted scores
+  isochrone/      reachability from the downtown exchange
+  equity/         optional census income overlay
+  api/            HTTP API (also serves /results.json)
+web/              React + TypeScript dashboard (Vite, Tailwind, Recharts, Leaflet)
+data/             curated inputs (municipal boundary, amenities)
+```
+
+## Data
+
+| Input | Source | In repo? |
+|-------|--------|----------|
+| GTFS schedule | [BC Transit open data](https://www.bctransit.com/open-data/), downloaded each run | no |
+| Municipal boundary | City of Chilliwack Open Data | `data/chilliwack_boundary.geojson` |
+| Amenities | Hand-curated | `data/amenities.json` |
+| Neighbourhoods (optional) | [City of Chilliwack Open Data Catalogue](https://www.chilliwack.com/opendata), Neighbourhoods layer | place at `data/neighbourhoods.geojson` |
+| Census income (optional) | Statistics Canada 2021, Dissemination Areas | place under `data/census/` |
+
+Optional inputs are skipped if missing. Without `neighbourhoods.geojson`, the headline score is the plain grid average rather than population-weighted.
+
+## Publishing
+
+`.github/workflows/pages.yml` runs the analysis, copies `output/tqi_results.json` to `web/public/results.json`, builds the dashboard as a static site and deploys it to GitHub Pages. It runs on every push to `master`, weekly on Mondays, and on demand.
+
+## Tests
+
+```bash
+make test        # go test + frontend lint
+cd web && npm run e2e   # Playwright smoke + accessibility tests
 ```
 
 ## License

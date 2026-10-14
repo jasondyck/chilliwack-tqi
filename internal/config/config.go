@@ -15,8 +15,8 @@ var (
 	BBoxNE = [2]float64{49.225607, -121.777247}
 )
 
-// BoundaryGeoJSON is the relative path to the boundary file.
-const BoundaryGeoJSON = "data/chilliwack_boundary.geojson"
+// BoundaryGeoJSON is the boundary file name, relative to the data directory.
+const BoundaryGeoJSON = "chilliwack_boundary.geojson"
 
 // ── Chilliwack route short names (strings, as in GTFS) ──
 
@@ -32,12 +32,12 @@ const GridSpacingM = 250
 // ── Walking / routing parameters ──
 
 const (
-	WalkSpeedKMH      = 5.0
-	WalkSpeedMPerMin  = WalkSpeedKMH * 1000.0 / 60.0 // 83.33 m/min
-	MaxWalkToStopM    = 800
-	MaxTransferWalkM  = 400
-	MaxTripMin        = 90
-	MaxTransfers      = 2
+	WalkSpeedKMH     = 5.0
+	WalkSpeedMPerMin = WalkSpeedKMH * 1000.0 / 60.0 // 83.33 m/min
+	MaxWalkToStopM   = 800
+	MaxTransferWalkM = 400
+	MaxTripMin       = 90
+	MaxTransfers     = 2
 )
 
 // ── Time window (minutes since midnight) ──
@@ -60,9 +60,9 @@ func DepartureTimes() []int {
 // ── Scoring normalisation ──
 
 const (
-	TSRWalk      = 5.0  // km/h — walking baseline (score = 0)
-	TSRCar       = 40.0 // km/h — car baseline (score = 100)
-	MinODDistKM  = 0.5  // exclude trivially walkable pairs
+	TSRWalk     = 5.0  // km/h — walking baseline (score = 0)
+	TSRCar      = 40.0 // km/h — car baseline (score = 100)
+	MinODDistKM = 0.5  // exclude trivially walkable pairs
 )
 
 // ── Walk Score Transit Score ranges ──

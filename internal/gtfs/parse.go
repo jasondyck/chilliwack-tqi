@@ -217,3 +217,26 @@ func parseShapes(rows []map[string]string) []Shape {
 	}
 	return shapes
 }
+
+// FeedInfo holds the subset of feed_info.txt used for provenance.
+type FeedInfo struct {
+	Version   string
+	StartDate string
+	EndDate   string
+}
+
+// LoadFeedInfo reads feed_info.txt from a GTFS directory.
+func LoadFeedInfo(dir string) (*FeedInfo, error) {
+	rows, err := readCSV(filepath.Join(dir, "feed_info.txt"))
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("feed_info.txt is empty")
+	}
+	return &FeedInfo{
+		Version:   rows[0]["feed_version"],
+		StartDate: rows[0]["feed_start_date"],
+		EndDate:   rows[0]["feed_end_date"],
+	}, nil
+}

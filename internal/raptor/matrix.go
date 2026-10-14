@@ -16,8 +16,8 @@ type ProgressFunc func(completed, total int)
 
 // nearbyStop records a transit stop near a grid point with the walk time to reach it.
 type nearbyStop struct {
-	stopIdx  int
-	walkMin  float64
+	stopIdx int
+	walkMin float64
 }
 
 // ComputeMatrix computes pairwise travel time metrics between all grid points

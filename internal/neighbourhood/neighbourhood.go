@@ -29,20 +29,20 @@ type Score struct {
 
 // population2021 contains hardcoded 2021 Census populations keyed by GeoJSON NAME field.
 var population2021 = map[string]int{
-	"Chilliwack Proper":  31410,
-	"Vedder":             22620,
-	"Promontory":         11820,
-	"Sardis":             10010,
-	"Rosedale":           5700,
-	"Fairfield":          4220,
-	"Eastern Hillsides":  3450,
-	"Yarrow":             3380,
-	"Greendale":          3110,
+	"Chilliwack Proper":   31410,
+	"Vedder":              22620,
+	"Promontory":          11820,
+	"Sardis":              10010,
+	"Rosedale":            5700,
+	"Fairfield":           4220,
+	"Eastern Hillsides":   3450,
+	"Yarrow":              3380,
+	"Greendale":           3110,
 	"Chilliwack Mountain": 2510,
-	"Ryder Lake":         1290,
-	"Little Mountain":    1170,
-	"Village West":       0,
-	"Cattermole":         0,
+	"Ryder Lake":          1290,
+	"Little Mountain":     1170,
+	"Village West":        0,
+	"Cattermole":          0,
 }
 
 // mergeTargets maps small areas into a parent neighbourhood for scoring.
@@ -53,14 +53,14 @@ var mergeTargets = map[string]string{
 
 // geoJSON types for parsing
 type featureCollection struct {
-	Type     string          `json:"type"`
-	Features []feature       `json:"features"`
-	Name     string          `json:"name,omitempty"`
+	Type     string    `json:"type"`
+	Features []feature `json:"features"`
+	Name     string    `json:"name,omitempty"`
 }
 
 type feature struct {
-	Type       string          `json:"type"`
-	Geometry   geometry        `json:"geometry"`
+	Type       string                 `json:"type"`
+	Geometry   geometry               `json:"geometry"`
 	Properties map[string]interface{} `json:"properties"`
 }
 
@@ -166,10 +166,10 @@ func ComputeScores(
 	gridSpeed []float64,
 ) ([]Score, float64, float64, float64) {
 	type accumulator struct {
-		tqiSum      float64
-		covSum      float64
-		spdSum      float64
-		count       int
+		tqiSum float64
+		covSum float64
+		spdSum float64
+		count  int
 	}
 
 	accum := make(map[string]*accumulator)

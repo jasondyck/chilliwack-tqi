@@ -205,9 +205,9 @@ func ComputeDetailedAnalysis(
 
 	// --- Top origins by reachability ---
 	type indexedReach struct {
-		idx  int
-		cnt  int
-		pct  float64
+		idx int
+		cnt int
+		pct float64
 	}
 	ranked := make([]indexedReach, nOrigins)
 	for i := 0; i < nOrigins; i++ {

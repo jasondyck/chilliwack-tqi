@@ -32,17 +32,18 @@ func TestResultsNotReady(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-func TestConfigEndpoint(t *testing.T) {
-	t.Setenv("MAPBOX_TOKEN", "test-token-123")
-
+func TestResultsJSONAlias(t *testing.T) {
 	srv := NewServer(0)
-	req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	srv.SetResults(&PipelineResults{Meta: Meta{City: "chilliwack", ServiceDate: "20261013"}})
+	req := httptest.NewRequest(http.MethodGet, "/results.json", nil)
 	w := httptest.NewRecorder()
 	srv.Mux.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var body map[string]string
+	var body struct {
+		Meta Meta `json:"meta"`
+	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, "test-token-123", body["mapbox_token"])
+	assert.Equal(t, "20261013", body.Meta.ServiceDate)
 }

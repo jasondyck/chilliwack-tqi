@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/jasondyck/chilliwack-tqi/internal/equity"
@@ -20,25 +19,37 @@ type GridScorePoint struct {
 	Score float64 `json:"score"`
 }
 
+// Meta records provenance for a pipeline run.
+type Meta struct {
+	City          string `json:"city"`
+	GeneratedAt   string `json:"generated_at"`
+	FeedVersion   string `json:"feed_version"`
+	FeedStartDate string `json:"feed_start_date"`
+	FeedEndDate   string `json:"feed_end_date"`
+	FeedHash      string `json:"feed_hash"`
+	ServiceDate   string `json:"service_date"`
+}
+
 // PipelineResults holds the output of a completed pipeline run.
 type PipelineResults struct {
-	TQI               *scoring.TQIResult        `json:"tqi"`
-	Metrics           *scoring.ODMetrics         `json:"-"`
-	RouteLOS          []scoring.RouteLOS         `json:"route_los"`
-	SystemLOS         *scoring.SystemLOSSummary  `json:"system_los"`
-	PTAL              *scoring.PTALResult        `json:"ptal"`
-	Amenities         []scoring.AmenityResult    `json:"amenities"`
-	GridPoints        int                        `json:"grid_points"`
-	NStops            int                        `json:"n_stops"`
-	GridScores        []GridScorePoint           `json:"grid_scores,omitempty"`
-	Narrative         []string                   `json:"narrative,omitempty"`
-	WalkScoreCategory string                     `json:"walkscore_category"`
-	WalkScoreDesc     string                     `json:"walkscore_desc"`
-	DetailedAnalysis  *scoring.DetailedAnalysis   `json:"detailed_analysis,omitempty"`
-	Isochrones        []isochrone.Result          `json:"isochrones,omitempty"`
-	Equity                  *equity.Result              `json:"equity,omitempty"`
-	NeighbourhoodScores     []neighbourhood.Score       `json:"neighbourhood_scores,omitempty"`
-	NeighbourhoodBoundaries json.RawMessage             `json:"neighbourhood_boundaries,omitempty"`
+	Meta                    Meta                      `json:"meta"`
+	TQI                     *scoring.TQIResult        `json:"tqi"`
+	Metrics                 *scoring.ODMetrics        `json:"-"`
+	RouteLOS                []scoring.RouteLOS        `json:"route_los"`
+	SystemLOS               *scoring.SystemLOSSummary `json:"system_los"`
+	PTAL                    *scoring.PTALResult       `json:"ptal"`
+	Amenities               []scoring.AmenityResult   `json:"amenities"`
+	GridPoints              int                       `json:"grid_points"`
+	NStops                  int                       `json:"n_stops"`
+	GridScores              []GridScorePoint          `json:"grid_scores,omitempty"`
+	Narrative               []string                  `json:"narrative,omitempty"`
+	WalkScoreCategory       string                    `json:"walkscore_category"`
+	WalkScoreDesc           string                    `json:"walkscore_desc"`
+	DetailedAnalysis        *scoring.DetailedAnalysis `json:"detailed_analysis,omitempty"`
+	Isochrones              []isochrone.Result        `json:"isochrones,omitempty"`
+	Equity                  *equity.Result            `json:"equity,omitempty"`
+	NeighbourhoodScores     []neighbourhood.Score     `json:"neighbourhood_scores,omitempty"`
+	NeighbourhoodBoundaries json.RawMessage           `json:"neighbourhood_boundaries,omitempty"`
 }
 
 // Server is the HTTP API server for the TQI pipeline.
@@ -76,8 +87,9 @@ func (s *Server) SetResults(r *PipelineResults) {
 
 func (s *Server) registerRoutes() {
 	s.Mux.HandleFunc("GET /api/health", s.handleHealth)
-	s.Mux.HandleFunc("GET /api/config", s.handleConfig)
 	s.Mux.HandleFunc("GET /api/results", s.handleResults)
+	// Same payload at the path the static GitHub Pages build uses.
+	s.Mux.HandleFunc("GET /results.json", s.handleResults)
 	s.Mux.HandleFunc("GET /api/results/routes", s.handleResultsRoutes)
 	s.Mux.HandleFunc("GET /api/results/time-profile", s.handleResultsTimeProfile)
 	s.Mux.HandleFunc("GET /api/results/amenities", s.handleResultsAmenities)
@@ -110,12 +122,6 @@ func (s *Server) registerRoutes() {
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{
-		"mapbox_token": os.Getenv("MAPBOX_TOKEN"),
-	})
 }
 
 func (s *Server) handleResults(w http.ResponseWriter, r *http.Request) {

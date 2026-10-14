@@ -3,8 +3,8 @@ package internal_test
 import (
 	"testing"
 
-	"github.com/jasondyck/chilliwack-tqi/internal/gtfs"
 	"github.com/jasondyck/chilliwack-tqi/internal/grid"
+	"github.com/jasondyck/chilliwack-tqi/internal/gtfs"
 	"github.com/jasondyck/chilliwack-tqi/internal/raptor"
 	"github.com/jasondyck/chilliwack-tqi/internal/scoring"
 	"github.com/stretchr/testify/assert"

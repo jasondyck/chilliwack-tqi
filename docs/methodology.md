@@ -2,6 +2,10 @@
 
 ## Methodology Design Document
 
+> This is the original design document. Code snippets are illustrative Python;
+> the implementation now lives in Go under [`internal/`](../internal/)
+> (`raptor/` for routing, `scoring/` for the index and sub-scores).
+
 ---
 
 ## 1. Objective

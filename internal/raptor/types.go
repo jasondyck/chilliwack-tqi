@@ -52,12 +52,12 @@ type FlatTimetable struct {
 	NStops    int
 	NPatterns int
 	StopIDs   []string
-	PSData    []int32   // pattern stop indices, concatenated
-	PSOffsets []int32   // PSData[PSOffsets[p]..PSOffsets[p+1]] = stops of pattern p
-	TTData    []int32   // trip times, concatenated: arr/dep pairs
-	TTOffsets []int32   // TTData offset per pattern
-	TTNTrips  []int32   // number of trips per pattern
-	TTNStops  []int32   // number of stops per pattern
+	PSData    []int32    // pattern stop indices, concatenated
+	PSOffsets []int32    // PSData[PSOffsets[p]..PSOffsets[p+1]] = stops of pattern p
+	TTData    []int32    // trip times, concatenated: arr/dep pairs
+	TTOffsets []int32    // TTData offset per pattern
+	TTNTrips  []int32    // number of trips per pattern
+	TTNStops  []int32    // number of stops per pattern
 	SPData    [][2]int32 // (patternIdx, position) per stop, concatenated
 	SPOffsets []int32    // SPData offset per stop
 	TRData    [][2]int32 // (targetStopIdx, walkMin*100) per stop, concatenated

@@ -11,21 +11,21 @@ import (
 
 // Amenity represents a point of interest.
 type Amenity struct {
-	Name     string `json:"name"`
+	Name     string  `json:"name"`
 	Lat      float64 `json:"lat"`
 	Lon      float64 `json:"lon"`
-	Category string `json:"category"`
+	Category string  `json:"category"`
 }
 
 // AmenityResult holds accessibility metrics for a single amenity.
 type AmenityResult struct {
-	Name            string  `json:"name"`
-	Category        string  `json:"category"`
-	Lat             float64 `json:"lat"`
-	Lon             float64 `json:"lon"`
-	PctWithin30Min  float64 `json:"pct_within_30_min"`
-	PctWithin60Min  float64 `json:"pct_within_60_min"`
-	MeanTravelTime  float64 `json:"mean_travel_time"`
+	Name           string  `json:"name"`
+	Category       string  `json:"category"`
+	Lat            float64 `json:"lat"`
+	Lon            float64 `json:"lon"`
+	PctWithin30Min float64 `json:"pct_within_30_min"`
+	PctWithin60Min float64 `json:"pct_within_60_min"`
+	MeanTravelTime float64 `json:"mean_travel_time"`
 }
 
 // LoadAmenities reads amenities from a JSON file.

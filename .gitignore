@@ -1,19 +1,8 @@
-# Python
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-
 # Runtime data (downloaded GTFS, census, cached matrices)
 data/gtfs/
 data/census/
 data/cache/
-data/gtfs_*/
+data/*/gtfs/
 output/
 
 # Keep curated data files
@@ -48,18 +37,9 @@ test-results/
 
 # OS
 .DS_Store
-go/web/node_modules/
-go/tqi
+bin/
 tqi-server
-go/bin/
-go/data/
-go/debug
-
-# Benchmarks
-bench/
-
-# E2E screenshots
-e2e/screenshots/
+web/dist/
 
 # Neighbourhood boundary data
 data/neighbourhoods.geojson

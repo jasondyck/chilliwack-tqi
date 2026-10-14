@@ -10,24 +10,24 @@ import (
 
 // RouteLOS holds the level-of-service grading for a single route.
 type RouteLOS struct {
-	RouteName     string   `json:"route_name"`
-	RouteLongName string   `json:"route_long_name"`
-	RouteID       string   `json:"route_id"`
-	NTrips        int      `json:"n_trips"`
-	MedianHeadway float64  `json:"median_headway"`
-	PeakHeadway   *float64 `json:"peak_headway"`
-	LOSGrade      string   `json:"los_grade"`
-	LOSDescription string  `json:"los_description"`
+	RouteName      string   `json:"route_name"`
+	RouteLongName  string   `json:"route_long_name"`
+	RouteID        string   `json:"route_id"`
+	NTrips         int      `json:"n_trips"`
+	MedianHeadway  float64  `json:"median_headway"`
+	PeakHeadway    *float64 `json:"peak_headway"`
+	LOSGrade       string   `json:"los_grade"`
+	LOSDescription string   `json:"los_description"`
 }
 
 // SystemLOSSummary summarises the LOS across all routes.
 type SystemLOSSummary struct {
-	NRoutes             int                `json:"n_routes"`
-	GradeCounts         map[string]int     `json:"grade_counts"`
-	MedianSystemHeadway float64            `json:"median_system_headway"`
-	BestGrade           string             `json:"best_grade"`
-	WorstGrade          string             `json:"worst_grade"`
-	PctLOSDOrWorse      float64            `json:"pct_los_d_or_worse"`
+	NRoutes             int            `json:"n_routes"`
+	GradeCounts         map[string]int `json:"grade_counts"`
+	MedianSystemHeadway float64        `json:"median_system_headway"`
+	BestGrade           string         `json:"best_grade"`
+	WorstGrade          string         `json:"worst_grade"`
+	PctLOSDOrWorse      float64        `json:"pct_los_d_or_worse"`
 }
 
 // HeadwayToLOS maps a headway (minutes) to a TCQSM grade and description.
@@ -77,9 +77,9 @@ func ComputeRouteLOS(feed *gtfs.Feed) []RouteLOS {
 
 	// Compute headways per direction, take median.
 	type routeResult struct {
-		routeID   string
-		nTrips    int
-		headways  []float64
+		routeID  string
+		nTrips   int
+		headways []float64
 	}
 	routeResults := make(map[string]*routeResult)
 

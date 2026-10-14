@@ -34,7 +34,7 @@ var defaultBands = []band{
 }
 
 const (
-	walkSpeedMPerMin = 80.0  // matches PTAL config
+	walkSpeedMPerMin = 80.0 // matches PTAL config
 	maxWalkM         = 1000.0
 	maxTransfers     = 2
 )
@@ -176,6 +176,6 @@ func Compute(
 
 // geoGeometry is a minimal GeoJSON geometry.
 type geoGeometry struct {
-	Type        string          `json:"type"`
+	Type        string           `json:"type"`
 	Coordinates [][][][2]float64 `json:"coordinates"`
 }
