@@ -1,14 +1,10 @@
 import type { NeighbourhoodScore } from '../lib/types'
+import { walkScoreBand } from '../lib/walkscore'
 
 interface Props {
   scores: NeighbourhoodScore[]
 }
 
-function tqiColor(tqi: number): string {
-  if (tqi >= 5) return 'text-emerald-700'
-  if (tqi >= 2.5) return 'text-amber-700'
-  return 'text-red-600'
-}
 
 export default function NeighbourhoodTable({ scores }: Props) {
   const sorted = [...scores].sort((a, b) => b.population - a.population)
@@ -28,12 +24,14 @@ export default function NeighbourhoodTable({ scores }: Props) {
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Neighbourhood</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600 min-w-[160px]">Population</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600">TQI</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell">Category</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-500">Grid Points</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((s, i) => {
                 const popPct = (s.population / maxPop) * 100
+                const band = walkScoreBand(s.tqi)
                 return (
                   <tr key={s.name} className={`border-b border-slate-100 ${i % 2 === 1 ? 'bg-slate-50/50' : ''}`}>
                     <td className="px-4 py-3 font-medium text-slate-900">{s.name}</td>
@@ -45,8 +43,11 @@ export default function NeighbourhoodTable({ scores }: Props) {
                         <span className="tabular-nums text-slate-700">{s.population.toLocaleString()}</span>
                       </div>
                     </td>
-                    <td className={`px-4 py-3 text-right font-bold tabular-nums ${tqiColor(s.tqi)}`}>
+                    <td className={`px-4 py-3 text-right font-bold tabular-nums ${band.text}`}>
                       {s.tqi.toFixed(1)}
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${band.badge}`}>{band.label}</span>
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-500">
                       {s.grid_point_count.toLocaleString()}
@@ -60,6 +61,7 @@ export default function NeighbourhoodTable({ scores }: Props) {
       </div>
       <p className="text-xs text-slate-500 mt-2">
         City-wide TQI is population-weighted: neighbourhoods with more residents contribute proportionally more to the overall score.
+        Colours follow the Walk Score transit bands on the full 0–100 scale.
       </p>
     </section>
   )

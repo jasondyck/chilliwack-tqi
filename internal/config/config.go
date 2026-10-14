@@ -85,22 +85,24 @@ var WalkScoreRanges = []WalkScoreRange{
 
 // WalkScoreCategory returns the label for a given score (0-100).
 func WalkScoreCategory(score float64) string {
-	for _, r := range WalkScoreRanges {
-		if score >= float64(r.Min) && score <= float64(r.Max) {
-			return r.Label
-		}
-	}
-	return "Minimal Transit"
+	return walkScoreRange(score).Label
 }
 
 // WalkScoreDescription returns the description for a given score (0-100).
 func WalkScoreDescription(score float64) string {
+	return walkScoreRange(score).Description
+}
+
+// walkScoreRange matches on each band's lower bound (bands are ordered
+// highest first), so fractional scores such as 49.5 don't fall between the
+// integer ranges.
+func walkScoreRange(score float64) WalkScoreRange {
 	for _, r := range WalkScoreRanges {
-		if score >= float64(r.Min) && score <= float64(r.Max) {
-			return r.Description
+		if score >= float64(r.Min) {
+			return r
 		}
 	}
-	return "It is possible to get on a bus"
+	return WalkScoreRanges[len(WalkScoreRanges)-1]
 }
 
 // ── TCQSM LOS grades (TCRP Report 165, 3rd Edition) ──

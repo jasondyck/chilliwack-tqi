@@ -2,13 +2,7 @@ interface Props {
   currentTQI: number
 }
 
-const ranges = [
-  { min: 90, max: 100, label: "Rider's Paradise", desc: 'World-class public transportation' },
-  { min: 70, max: 89, label: 'Excellent Transit', desc: 'Transit convenient for most trips' },
-  { min: 50, max: 69, label: 'Good Transit', desc: 'Many nearby public transportation options' },
-  { min: 25, max: 49, label: 'Some Transit', desc: 'A few nearby public transportation options' },
-  { min: 0, max: 24, label: 'Minimal Transit', desc: 'It is possible to get on a bus' },
-]
+import { WALK_SCORE_BANDS, walkScoreBand } from '../lib/walkscore'
 
 export default function WalkScoreTable({ currentTQI }: Props) {
   return (
@@ -27,8 +21,8 @@ export default function WalkScoreTable({ currentTQI }: Props) {
             </tr>
           </thead>
           <tbody>
-            {ranges.map((r, i) => {
-              const active = currentTQI >= r.min && currentTQI <= r.max
+            {WALK_SCORE_BANDS.map((r, i) => {
+              const active = r === walkScoreBand(currentTQI)
               return (
                 <tr
                   key={r.label}
