@@ -64,12 +64,14 @@ data/             curated inputs (municipal boundary, amenities)
 | Input | Source | In repo? |
 |-------|--------|----------|
 | GTFS schedule | [BC Transit open data](https://www.bctransit.com/open-data/), downloaded each run | no |
-| Municipal boundary | City of Chilliwack Open Data | `data/chilliwack_boundary.geojson` |
+| Municipal boundary | [City of Chilliwack Open Data](https://www.chilliwack.com/opendata) | `data/chilliwack_boundary.geojson` |
 | Amenities | Hand-curated | `data/amenities.json` |
-| Neighbourhoods (optional) | [City of Chilliwack Open Data Catalogue](https://www.chilliwack.com/opendata), Neighbourhoods layer | place at `data/neighbourhoods.geojson` |
+| Neighbourhoods | [City of Chilliwack Open Data](https://www.chilliwack.com/opendata), Neighbourhoods layer (OCP 2050) | `data/neighbourhoods.geojson` |
 | Census income (optional) | Statistics Canada 2021, Dissemination Areas | place under `data/census/` |
 
-Optional inputs are skipped if missing. Without `neighbourhoods.geojson`, the headline score is the plain grid average rather than population-weighted.
+Optional inputs are skipped if missing. Without `neighbourhoods.geojson`, the headline score falls back to the plain grid average instead of the population-weighted one.
+
+Contains information licensed under the [Open Data License – City of Chilliwack](https://opendata.chilliwack.com/Chilliwack_Open_Data_License/Open_Data_License-City_of_Chilliwack.pdf).
 
 ## Publishing
 
