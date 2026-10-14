@@ -1,12 +1,14 @@
 import { MapContainer, TileLayer, CircleMarker, Polyline, LayersControl, LayerGroup, Tooltip, GeoJSON } from 'react-leaflet'
-import type { GridScorePoint, RouteShape, TransitStop } from '../lib/types'
+import type { Feature, FeatureCollection, Geometry } from 'geojson'
+import type { Layer } from 'leaflet'
+import type { GridScorePoint, NeighbourhoodProperties, RouteShape, TransitStop } from '../lib/types'
 import 'leaflet/dist/leaflet.css'
 
 interface Props {
   points: GridScorePoint[]
   routeShapes?: RouteShape[] | null
   transitStops?: TransitStop[] | null
-  neighbourhoodBoundaries?: unknown | null
+  neighbourhoodBoundaries?: FeatureCollection<Geometry, NeighbourhoodProperties> | null
 }
 
 function scoreColor(score: number): string {
@@ -32,7 +34,7 @@ export default function HeatMap({ points, routeShapes, transitStops, neighbourho
         <div className="flex-1 border-t border-slate-200" />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" style={{ height: 500 }}>
-        <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
+        <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true} preferCanvas>
           <TileLayer
             attribution='&copy; <a href="https://carto.com">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -84,14 +86,14 @@ export default function HeatMap({ points, routeShapes, transitStops, neighbourho
             {neighbourhoodBoundaries != null && (
               <LayersControl.Overlay checked name="Neighbourhoods">
                 <GeoJSON
-                  data={neighbourhoodBoundaries as any}
+                  data={neighbourhoodBoundaries}
                   style={() => ({
                     color: '#475569',
                     weight: 2,
                     fillOpacity: 0,
                     dashArray: '4 4',
                   })}
-                  onEachFeature={(feature: any, layer: any) => {
+                  onEachFeature={(feature: Feature<Geometry, NeighbourhoodProperties>, layer: Layer) => {
                     const name = feature?.properties?.NAME
                     if (name) {
                       layer.bindTooltip(name, { sticky: true, className: 'text-xs' })

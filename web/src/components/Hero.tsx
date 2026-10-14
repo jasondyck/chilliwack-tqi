@@ -1,8 +1,11 @@
-import type { TQIResult } from '../lib/types'
+import type { ResultsMeta, TQIResult } from '../lib/types'
+import { formatGTFSDate } from '../lib/format'
 
 interface Props {
   tqi: TQIResult
   category: string
+  populationWeighted: boolean
+  meta?: ResultsMeta
 }
 
 function categoryColor(cat: string): string {
@@ -18,7 +21,8 @@ function barGradient(score: number): string {
   return 'from-red-400 to-red-500'
 }
 
-export default function Hero({ tqi, category }: Props) {
+export default function Hero({ tqi, category, populationWeighted, meta }: Props) {
+  const serviceDate = formatGTFSDate(meta?.service_date)
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 relative overflow-hidden">
       <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl" />
@@ -31,9 +35,13 @@ export default function Hero({ tqi, category }: Props) {
           Chilliwack Transit Quality Index
         </h1>
         <p className="text-sm text-slate-500 max-w-xl mb-6">
-          Population-weighted assessment of public transit service quality &mdash; coverage, speed, reliability, and accessibility across 12 neighbourhoods.
+          {populationWeighted
+            ? 'Population-weighted assessment of public transit service quality — coverage, speed, reliability, and accessibility across Chilliwack’s neighbourhoods.'
+            : 'Assessment of public transit service quality — coverage, speed, reliability, and accessibility across Chilliwack.'}
         </p>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 mb-1">Population-Weighted Score</div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 mb-1">
+          {populationWeighted ? 'Population-Weighted Score' : 'City-Wide Score'}
+        </div>
         <div className="flex items-baseline gap-2 mb-3">
           <span className="text-5xl sm:text-7xl font-extrabold tabular-nums text-slate-900">
             {tqi.TQI.toFixed(1)}
@@ -49,6 +57,11 @@ export default function Hero({ tqi, category }: Props) {
         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${categoryColor(category)}`}>
           {category}
         </span>
+        {serviceDate && (
+          <p className="mt-4 text-xs text-slate-500">
+            Based on the BC Transit weekday schedule for <span className="font-semibold text-slate-700">{serviceDate}</span>
+          </p>
+        )}
       </div>
     </div>
   )

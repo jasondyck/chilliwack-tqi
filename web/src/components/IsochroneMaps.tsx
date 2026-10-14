@@ -29,7 +29,7 @@ export default function IsochroneMaps({ isochrones }: Props) {
         {isochrones.map((iso) => (
           <div key={iso.departure_time} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className={`px-3 py-2 border-b border-slate-200 flex items-center gap-2 ${iso.label === 'AM Peak' ? 'bg-blue-50' : 'bg-violet-50'}`}>
-              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold text-white ${iso.label === 'AM Peak' ? 'bg-blue-500' : 'bg-violet-500'}`}>
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold text-white ${iso.label === 'AM Peak' ? 'bg-blue-700' : 'bg-violet-700'}`}>
                 {iso.label}
               </span>
               <span className="text-sm font-semibold text-slate-700">{iso.departure_time} Isochrone</span>
@@ -41,13 +41,13 @@ export default function IsochroneMaps({ isochrones }: Props) {
                   url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                 />
                 <LayersControl position="topright">
-                  {(iso.geojson as any)?.features?.map((feature: any, i: number) => {
+                  {iso.geojson?.features?.map((feature, i) => {
                     const bandName = feature.properties?.band ?? ''
                     const color = feature.properties?.color ?? bandColors[bandName] ?? '#999'
                     return (
                       <LayersControl.Overlay key={i} checked name={bandName}>
                         <GeoJSON
-                          data={{ type: 'FeatureCollection', features: [feature] } as any}
+                          data={feature}
                           style={() => ({ fillColor: color, color: color, weight: 0.5, fillOpacity: 0.4 })}
                         />
                       </LayersControl.Overlay>

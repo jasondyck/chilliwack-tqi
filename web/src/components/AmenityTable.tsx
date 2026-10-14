@@ -5,7 +5,7 @@ interface Props {
 }
 
 function pctColor(pct: number, threshold: number): string {
-  return pct >= threshold ? 'text-emerald-600' : 'text-red-500'
+  return pct >= threshold ? 'text-emerald-700' : 'text-red-700'
 }
 
 export default function AmenityTable({ amenities }: Props) {

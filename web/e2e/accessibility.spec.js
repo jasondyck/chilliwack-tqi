@@ -2,7 +2,7 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-const BASE = 'http://localhost:8080'
+const BASE = '/'
 
 test.describe('Accessibility audit', () => {
   test('dashboard has no critical accessibility violations', async ({ page }) => {

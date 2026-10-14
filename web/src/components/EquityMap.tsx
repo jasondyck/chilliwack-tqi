@@ -1,5 +1,7 @@
 import { MapContainer, TileLayer, GeoJSON, LayersControl } from 'react-leaflet'
-import type { EquityResult } from '../lib/types'
+import type { Feature, Geometry } from 'geojson'
+import type { Layer } from 'leaflet'
+import type { EquityProperties, EquityResult } from '../lib/types'
 import 'leaflet/dist/leaflet.css'
 
 interface Props {
@@ -20,7 +22,7 @@ function incomeColor(income: number): string {
 
 export default function EquityMap({ equity }: Props) {
   const center: [number, number] = [49.168, -121.951]
-  const geojson = equity.geojson as any
+  const geojson = equity.geojson
 
   return (
     <section>
@@ -39,13 +41,13 @@ export default function EquityMap({ equity }: Props) {
             <LayersControl.Overlay checked name="TQI by DA">
               <GeoJSON
                 data={geojson}
-                style={(feature: any) => ({
+                style={(feature?: Feature<Geometry, EquityProperties>) => ({
                   fillColor: tqiColor(feature?.properties?.mean_tqi ?? 0),
                   color: '#475569',
                   weight: 1,
                   fillOpacity: 0.5,
                 })}
-                onEachFeature={(feature: any, layer: any) => {
+                onEachFeature={(feature: Feature<Geometry, EquityProperties>, layer: Layer) => {
                   const p = feature?.properties
                   if (p) {
                     layer.bindPopup(`<b>${p.DGUID}</b><br/>TQI: ${p.mean_tqi?.toFixed(1)}<br/>Income: $${p.median_income?.toLocaleString()}`)
@@ -56,7 +58,7 @@ export default function EquityMap({ equity }: Props) {
             <LayersControl.Overlay name="Income by DA">
               <GeoJSON
                 data={geojson}
-                style={(feature: any) => ({
+                style={(feature?: Feature<Geometry, EquityProperties>) => ({
                   fillColor: incomeColor(feature?.properties?.median_income ?? 0),
                   color: '#475569',
                   weight: 1,

@@ -1,3 +1,5 @@
+import type { FeatureCollection, Geometry } from 'geojson'
+
 export interface PipelineResponse {
   tqi: TQIResult
   route_los: RouteLOS[] | null
@@ -16,7 +18,22 @@ export interface PipelineResponse {
   route_shapes: RouteShape[] | null
   transit_stops: TransitStop[] | null
   neighbourhood_scores: NeighbourhoodScore[] | null
-  neighbourhood_boundaries: unknown | null
+  neighbourhood_boundaries: FeatureCollection<Geometry, NeighbourhoodProperties> | null
+  meta?: ResultsMeta
+}
+
+export interface ResultsMeta {
+  city: string
+  generated_at: string
+  feed_version: string
+  feed_start_date: string
+  feed_end_date: string
+  feed_hash: string
+  service_date: string
+}
+
+export interface NeighbourhoodProperties {
+  NAME?: string
 }
 
 export interface TQIResult {
@@ -109,11 +126,22 @@ export interface TopOrigin {
 export interface IsochroneResult {
   departure_time: string
   label: string
-  geojson: unknown
+  geojson: FeatureCollection<Geometry, IsochroneProperties> | null
+}
+
+export interface IsochroneProperties {
+  band?: string
+  color?: string
+}
+
+export interface EquityProperties {
+  DGUID?: string
+  mean_tqi?: number
+  median_income?: number
 }
 
 export interface EquityResult {
-  geojson: unknown
+  geojson: FeatureCollection<Geometry, EquityProperties>
   tqi_income_correlation: number
 }
 
